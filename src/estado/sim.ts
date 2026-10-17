@@ -13,6 +13,28 @@ export const sim = {
   intro: 0,
 }
 
+/** Posición de pantalla de un marcador de hotspot (la escribe la escena). */
+export type RanuraMarcador = { x: number; y: number; z: number }
+
+/**
+ * Ranuras estables (una por hotspot) con su posición proyectada en píxeles.
+ *
+ * Los anclajes 3D las escriben en cada frame y la capa DOM de marcadores las
+ * lee para aplicar estilos. Mismo principio que `sim`: valores continuos
+ * fuera de React, sin re-renders.
+ */
+export const marcadores = new Map<string, RanuraMarcador>()
+
+/** Devuelve (creando si hace falta) la ranura estable de un marcador. */
+export function ranuraMarcador(id: string): RanuraMarcador {
+  let ranura = marcadores.get(id)
+  if (!ranura) {
+    ranura = { x: 0, y: 0, z: 0 }
+    marcadores.set(id, ranura)
+  }
+  return ranura
+}
+
 // Puente de depuración: permite inspeccionar la simulación desde la consola
 // o desde las pruebas con navegador. Solo existe en desarrollo y con DOM
 // disponible (los tests unitarios corren en node, sin `window`).

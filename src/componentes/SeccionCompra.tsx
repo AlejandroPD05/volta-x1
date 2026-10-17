@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { motion } from 'framer-motion'
 
 const VENTAJAS = [
-  '45 g con estructura de panal',
+  '45 g con panal de refuerzo interno',
   '8 000 Hz inalámbrico · 0.125 ms',
   '90 h de batería · carga rápida USB-C',
   'Envío gratis en 48 h (demo)',

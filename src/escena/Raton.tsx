@@ -4,6 +4,7 @@ import * as THREE from 'three'
 import type { Group } from 'three'
 import { HOTSPOTS } from '../datos/especificaciones'
 import { sim } from '../estado/sim'
+import { onda } from './sobrecarga'
 import { Hotspot } from './Hotspot'
 import { CarcasaInferior } from './partes/CarcasaInferior'
 import { Bateria } from './partes/Bateria'
@@ -18,9 +19,9 @@ import { CarcasaSuperior } from './partes/CarcasaSuperior'
  *   6. CarcasaInferior  → base + skates PTFE (no se mueve: es el suelo)
  *   5. Bateria          → LiPo + módulo 2.4G
  *   4. Pcb              → sensor, MCU y LEDs
- *   3. Botones          → planchas clicables + switches ópticos
+ *   3. Botones          → switches ópticos + botones laterales
  *   2. RuedaScroll      → rueda + encoder
- *   1. CarcasaSuperior  → cubierta con panal (la última en salir)
+ *   1. CarcasaSuperior  → cubierta, botones y cuna (la última en salir)
  *
  * El giro inicial en Y presenta el ratón en tres cuartos; la flotación
  * suave (seno) solo actúa cuando está montado, para que la vista
@@ -42,6 +43,10 @@ export function Raton() {
     if (!raiz.current) return
     const t = estado.clock.elapsedTime
     raiz.current.position.y = Math.sin(t * 0.9) * 0.014 * (1 - sim.explosion)
+    // La onda de acento se mide en coordenadas del ratón: mantén fresca la
+    // inversa de su matriz para el shader de los materiales emisivos.
+    raiz.current.updateWorldMatrix(true, false)
+    onda.invRaton.value.copy(raiz.current.matrixWorld).invert()
   })
 
   return (
@@ -55,8 +60,8 @@ export function Raton() {
 
       {/* Los hotspots viven DENTRO del grupo: así giran, flotan y se
           descomponen pegados a sus piezas, no en coordenadas de mundo. */}
-      {HOTSPOTS.map((dato, i) => (
-        <Hotspot key={dato.id} dato={dato} indice={i + 1} />
+      {HOTSPOTS.map((dato) => (
+        <Hotspot key={dato.id} dato={dato} />
       ))}
     </group>
   )

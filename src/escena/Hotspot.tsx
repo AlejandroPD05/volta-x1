@@ -1,102 +1,50 @@
-import { useMemo, useRef } from 'react'
-import { useFrame } from '@react-three/fiber'
-import { Html } from '@react-three/drei'
-import { AnimatePresence, motion } from 'framer-motion'
+import { useRef } from 'react'
+import { useFrame, useThree } from '@react-three/fiber'
+import { Vector3, type Group } from 'three'
 import type { HotspotDato } from '../datos/especificaciones'
-import { sim } from '../estado/sim'
-import { useUsoTienda } from '../estado/usoTienda'
-import { escalonSuave, progresoPorRetardo } from '../utiles/mates'
+import { marcadores, ranuraMarcador } from '../estado/sim'
 
 type Props = {
   dato: HotspotDato
-  indice: number
 }
 
 /**
- * Marcador flotante anclado a una pieza en el espacio 3D (drei `Html`).
+ * Ancla 3D de un marcador de hotspot.
  *
- * Cada marcador tiene su propio umbral (`dato.aparece`): va emergiendo con
- * una pequeña escala y ganando opacidad a medida que su capa se separa.
- * En escritorio se abre al pasar el ratón; en táctil, al tocar.
+ * No pinta nada: en cada frame proyecta su posición de mundo a píxeles y la
+ * escribe en su ranura de `marcadores`. La capa DOM (`MarcadoresHotspot`,
+ * montada junto al Canvas en `Escena`) es la que dibuja el punto y la
+ * tarjeta, ya en el árbol normal de React. Antes se usaba el `Html` de drei,
+ * que monta una raíz de render por marcador y en esta escena perdía el
+ * contenido de uno de los seis (el de la carcasa superior) tanto en
+ * desarrollo como en la build.
  */
-export function Hotspot({ dato, indice }: Props) {
-  const envoltorio = useRef<HTMLDivElement>(null)
-  const activo = useUsoTienda((s) => s.hotspotActivo === dato.id)
-  const abrir = useUsoTienda((s) => s.abrirHotspot)
-  const alternar = useUsoTienda((s) => s.alternarHotspot)
-  const cerrar = useUsoTienda((s) => s.cerrarHotspot)
-
-  // ¿El dispositivo tiene hover real? Decidesi el marcador se abre solo.
-  const conHover = useMemo(() => window.matchMedia('(hover: hover)').matches, [])
+export function Hotspot({ dato }: Props) {
+  const ancla = useRef<Group>(null)
+  const mundo = useRef(new Vector3())
+  const camara = useThree((s) => s.camera)
+  const tamano = useThree((s) => s.size)
 
   useFrame(() => {
-    const el = envoltorio.current
-    if (!el) return
-    const visibilidad = escalonSuave(progresoPorRetardo(sim.explosion, dato.aparece))
-    el.style.opacity = String(visibilidad)
-    el.style.transform = `scale(${0.55 + 0.45 * visibilidad})`
-    el.style.pointerEvents = visibilidad > 0.55 ? 'auto' : 'none'
+    const g = ancla.current
+    if (!g) return
+    g.updateWorldMatrix(true, false)
+    mundo.current.setFromMatrixPosition(g.matrixWorld)
+    const distancia = mundo.current.distanceTo(camara.position)
+    mundo.current.project(camara)
+
+    // Ranura estable del marcador (se crea la primera vez): escribir aquí y
+    // no en render evita mutaciones fuera del ciclo de React.
+    const ranura = marcadores.get(dato.id) ?? ranuraMarcador(dato.id)
+    ranura.x = ((mundo.current.x + 1) / 2) * tamano.width
+    ranura.y = ((1 - mundo.current.y) / 2) * tamano.height
+
+    // z-index por distancia (mismo rango que usaba drei): los puntos más
+    // cercanos a la cámara quedan por delante de los lejanos.
+    const rango: [number, number] = [20, 0]
+    const a = (rango[1] - rango[0]) / (camara.far - camara.near)
+    ranura.z = Math.round(a * distancia + (rango[1] - a * camara.far))
   })
 
-  return (
-    <Html position={dato.posicion} zIndexRange={[20, 0]} style={{ pointerEvents: 'none' }}>
-      <div
-        ref={envoltorio}
-        className="hotspot"
-        style={{ width: 0, height: 0, opacity: 0 }}
-        onMouseLeave={conHover ? cerrar : undefined}
-      >
-        <button
-          type="button"
-          className="hotspot__punto"
-          aria-expanded={activo}
-          aria-label={`${dato.titulo}: ${dato.dato}`}
-          onMouseEnter={conHover ? () => abrir(dato.id) : undefined}
-          onClick={() => {
-            if (!conHover) alternar(dato.id)
-          }}
-        />
-
-        <AnimatePresence>
-          {activo && (
-            <motion.div
-              key="tarjeta"
-              initial={{ opacity: 0, scale: 0.95, y: dato.direccion === 'arriba' ? 12 : -12 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: dato.direccion === 'arriba' ? 12 : -12 }}
-              transition={{ type: 'spring', stiffness: 340, damping: 28 }}
-              className={`tarjeta-hotspot interactivo tarjeta-hotspot--${dato.direccion}`}
-            >
-              <div className="flex items-center justify-between gap-3">
-                <p className="font-mono text-[10px] uppercase tracking-[0.28em] texto-acento">
-                  {String(indice).padStart(2, '0')}
-                </p>
-                <button
-                  type="button"
-                  onClick={cerrar}
-                  aria-label="Cerrar tarjeta"
-                  className="texto-apagado text-xs transition-colors hover:text-white"
-                >
-                  ✕
-                </button>
-              </div>
-
-              <h3 className="titulo-grande mt-1 text-sm text-white">{dato.titulo}</h3>
-              <p className="titulo-grande texto-acento texto-glow mt-1 text-2xl">{dato.dato}</p>
-              <p className="texto-apagado mt-2 text-xs leading-relaxed">{dato.resumen}</p>
-
-              <ul className="mt-3 space-y-1">
-                {dato.detalles.map((detalle) => (
-                  <li key={detalle} className="flex gap-2 text-[11px] text-slate-300">
-                    <span className="texto-acento">▸</span>
-                    {detalle}
-                  </li>
-                ))}
-              </ul>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
-    </Html>
-  )
+  return <group ref={ancla} position={dato.posicion} />
 }

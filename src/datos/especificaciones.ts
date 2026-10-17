@@ -23,10 +23,10 @@ export const HOTSPOTS: HotspotDato[] = [
     id: 'carcasa',
     titulo: 'Carcasa superior',
     dato: '38 g',
-    resumen: 'Panal de abeja en ABS reforzado con fibra, impreso y ensamblado sin tornillos a la vista.',
+    resumen: 'Exterior continuo con nervios de panal internos: rigidez máxima con peso de pluma.',
     detalles: ['Rigidez estructural +24 %', 'Acabado SoftTouch antihuellas', 'Perfil bajo para claw-grip'],
     posicion: [0.42, 2.28, -0.3],
-    aparece: 0.82,
+    aparece: 0.55,
     direccion: 'abajo',
   },
   {
@@ -36,7 +36,7 @@ export const HOTSPOTS: HotspotDato[] = [
     resumen: 'Switches ópticos Gen-3: el clic se dispara con luz, sin rebote mecánico.',
     detalles: ['100 M de pulsaciones garantizadas', 'Fuerza de accionamiento 55 g', 'Pre-travel de 0.1 mm'],
     posicion: [0.38, 1.5, 0.46],
-    aparece: 0.58,
+    aparece: 0.65,
     direccion: 'arriba',
   },
   {
@@ -46,7 +46,7 @@ export const HOTSPOTS: HotspotDato[] = [
     resumen: 'Encoder óptico con rueda texturizada en silicona y hub de luz RGB.',
     detalles: ['Giro preciso sin desgaste', 'Clic central silencioso', 'Textura antideslizante'],
     posicion: [-0.4, 1.66, 0.42],
-    aparece: 0.7,
+    aparece: 0.6,
     direccion: 'arriba',
   },
   {
@@ -56,7 +56,7 @@ export const HOTSPOTS: HotspotDato[] = [
     resumen: 'Placa de doble cara con el sensor FLUX-30K y un MCU de 8 000 Hz.',
     detalles: ['750 IPS · 50 G de aceleración', 'Latencia total de 0.125 ms', 'LEDs RGB direccionables'],
     posicion: [-0.42, 1.1, 0.34],
-    aparece: 0.4,
+    aparece: 0.71,
     direccion: 'arriba',
   },
   {
@@ -66,7 +66,7 @@ export const HOTSPOTS: HotspotDato[] = [
     resumen: 'LiPo de 420 mAh y módulo inalámbrico de doble banda de bajísima latencia.',
     detalles: ['USB-C: 10 min = 12 h de juego', '2.4G a 8 000 Hz sin caídas', 'Bluetooth 5.3 de reserva'],
     posicion: [0.38, 0.65, -0.24],
-    aparece: 0.26,
+    aparece: 0.77,
     direccion: 'arriba',
   },
   {
@@ -75,8 +75,12 @@ export const HOTSPOTS: HotspotDato[] = [
     dato: '0.8 mm',
     resumen: 'Base rígida con cuatro patines de PTFE virgen pulido y lente sellada.',
     detalles: ['Deslizamiento +30 %', 'Tornillos ocultos bajo los skates', 'Compatibilidad con manteles XL'],
-    posicion: [-0.38, 0.14, 0.44],
-    aparece: 0.12,
+    // Centrado sobre la placa y pegado a su superficie (a ~5 mm): así ningún
+    // ángulo rasante saca el punto fuera del contorno. Antes vivía en
+    // [-0.38, 0.14, 0.44], fuera de la planta (a z 0.44 el contorno llega a
+    // ±0.275), y flotaba junto al borde inferior como un pico suelto.
+    posicion: [-0.02, 0.13, 0.05],
+    aparece: 0.15,
     direccion: 'arriba',
   },
 ]
@@ -93,7 +97,7 @@ export const ESPECIFICACIONES: Especificacion[] = [
     valor: '45',
     unidad: 'g',
     titulo: 'Peso pluma',
-    texto: 'Chasis de panal que elimina cada gramo sin sacrificar rigidez.',
+    texto: 'Nervios de panal internos que eliminan cada gramo sin sacrificar rigidez.',
   },
   {
     valor: '8 000',

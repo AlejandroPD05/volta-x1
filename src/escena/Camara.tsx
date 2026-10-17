@@ -22,6 +22,8 @@ export function Camara() {
   const camara = useThree((s) => s.camera)
   const gl = useThree((s) => s.gl)
   const interaccion = useRef(0)
+  // QA: distancia forzada (fotos macro del acabado); null = la del director.
+  const distanciaFijada = useRef<number | null>(null)
   const reducido = useUsoTienda((s) => s.reducido)
   const fina = useMemo(() => window.matchMedia('(pointer: fine)').matches, [])
 
@@ -32,6 +34,11 @@ export function Camara() {
       const puente = window as unknown as Record<string, unknown>
       puente.__voltaCamara = camara
       puente.__voltaControles = controles
+      puente.__voltaGl = gl
+      // Fija la distancia del director (capturas macro de QA): número o null.
+      puente.__voltaDistancia = (d: number | null) => {
+        distanciaFijada.current = d
+      }
     }
     const marcar = () => {
       interaccion.current = performance.now()
@@ -57,7 +64,8 @@ export function Camara() {
     c.target.z = esponjar(c.target.z, 0, 4, delta)
 
     // Distancia: lejos en la intro, cerca en reposo, atrás al explotar.
-    const distanciaObjetivo = mezclar(8.8, 3.5, facil(sim.intro)) + 1.4 * sim.explosion
+    const distanciaObjetivo =
+      distanciaFijada.current ?? mezclar(8.8, 3.5, facil(sim.intro)) + 1.4 * sim.explosion
     const direccion = camara.position.clone().sub(c.target)
     const longitud = direccion.length()
     camara.position

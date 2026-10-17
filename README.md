@@ -20,8 +20,9 @@ de cada pieza.
   Batería → Base`) controlado por scroll, por un **slider manual** o por los
   botones *Explosionar / Montar*. El ensamblaje se invierte al bajar a la
   siguiente sección.
-- **Hotspots 3D**: puntos que flotan anclados a cada pieza (se mueven y giran
-  con ella) y abren tarjetas glassmorphism con las cifras del componente.
+- **Hotspots 3D**: puntos anclados a la posición de cada pieza en el despiece
+  (giran y flotan con el ratón) que abren tarjetas glassmorphism con las cifras
+  del componente.
 - **Selección de color** con tres acentos neón (cyan, púrpura, lima) que tiñen
   LEDs, interfaz y hasta el polvo de partículas.
 - **Micro-interacciones** por todas partes: cursor propio con inercia,
@@ -54,12 +55,14 @@ de cada pieza.
 2. **Simulador** (`src/escena/Simulador.tsx`) suaviza ese objetivo con una
    exponencial amortiguada y lo escribe en `sim.explosion` (fuera de React).
 3. Cada capa (`src/escena/partes/*`) lee `sim.explosion` en su propio
-   `useFrame` y separa sus piezas con un **retardo** por componente: las piezas
-   críticas (base, carcasa) salen primero y las que van montadas encima salen
-   después, lo que produce el efecto de "desmontaje real".
-4. Los **hotspots** (`src/escena/Hotspot.tsx`) heredan la transformación de su
-   capa (viven dentro del grupo de cada pieza) y aparecen escalonados según la
-   explosión.
+   `useFrame` y separa sus piezas con un **retardo** por componente: la
+   carcasa se levanta primero —como al abrir un ratón de verdad— y tras ella
+   salen rueda, botones, PCB y batería, mientras la base se queda de suelo.
+   Al montar, el orden se invierte y la tapa vuelve a cerrarse la última, así
+   que las piezas nunca se cruzan entre sí.
+4. Los **hotspots** (`src/escena/Hotspot.tsx`) viven dentro del grupo del ratón,
+   en posiciones ajustadas al despiece completo, y aparecen escalonados según
+   avanza la explosión.
 5. **Camara** (`src/escena/Camara.tsx`) sube el punto de mira, se aleja y
    reorienta con `lookAt` propio para que el despiece completo quepa en
    pantalla en cualquier relación de aspecto.
@@ -89,9 +92,11 @@ npm test        # vitest (unitarios)
 
 ## Notas
 
-- No se usan modelos GLTF: todo el ratón es geometría procedural (cajas
-  redondeadas, cilindros y formas extruidas) para que el proyecto pese poco y
-  sea fácil de retocar por parámetros.
+- No se usan modelos GLTF: todo el ratón es geometría procedural. La carcasa se
+  genera con un *loft* paramétrico —planta y perfil barridos con splines
+  Catmull-Rom y secciones superelípticas— en
+  `src/escena/partes/geometriaRaton.ts`; el resto combina cajas redondeadas,
+  cilindros y formas extruidas. Todo se retoca por parámetros.
 - El bundle incluye three.js (~1.6 MB, ~465 kB gzip). Se puede dividir con
   `codeSplitting` si el proyecto creciera, pero para una sola página con
   canvas permanente se prioriza el arranque sin saltos.
