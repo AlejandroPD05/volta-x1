@@ -100,3 +100,8 @@ npm test        # vitest (unitarios)
 - El bundle incluye three.js (~1.6 MB, ~465 kB gzip). Se puede dividir con
   `codeSplitting` si el proyecto creciera, pero para una sola página con
   canvas permanente se prioriza el arranque sin saltos.
+- **Cabeceras de seguridad**: el sitio se publica en GitHub Pages, que no
+  permite configurar cabeceras de respuesta propias (`X-Content-Type-Options`,
+  `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy`). Si algún día se
+  migra a un hosting con soporte (Vercel, Netlify, Cloudflare Pages), habría
+  que añadirlas en la configuración del despliegue.
