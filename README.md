@@ -102,6 +102,8 @@ npm test        # vitest (unitarios)
   canvas permanente se prioriza el arranque sin saltos.
 - **Cabeceras de seguridad**: el sitio se publica en GitHub Pages, que no
   permite configurar cabeceras de respuesta propias (`X-Content-Type-Options`,
-  `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy`). Si algún día se
-  migra a un hosting con soporte (Vercel, Netlify, Cloudflare Pages), habría
-  que añadirlas en la configuración del despliegue.
+  `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy`). Como mitigación,
+  el HTML incluye metas de `referrer` y de `Content-Security-Policy` (verificada
+  contra el build real). Si algún día se migra a un hosting con soporte (Vercel,
+  Netlify, Cloudflare Pages), habría que añadir las cabeceras completas en la
+  configuración del despliegue.
