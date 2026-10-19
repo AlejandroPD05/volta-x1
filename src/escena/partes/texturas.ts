@@ -122,7 +122,7 @@ export type OpcionesGrano = {
  * real y no se queda "plano" de cerca.
  */
 export function crearMapaNormal({
-  tamano = 256,
+  tamano = 160,
   repeticion = 14,
   fuerza = 2.6,
   octavas = 3,
@@ -169,7 +169,7 @@ export type OpcionesSatinado = {
  * poco más, como en un ratón usado con cariño.
  */
 export function crearTexturaRugosidad({
-  tamano = 256,
+  tamano = 160,
   semilla = 11,
   manchas = 24,
   contraste = 0.16,
@@ -241,7 +241,7 @@ export type TexturasRayado = {
  * exactamente la misma historia.
  */
 export function crearTexturasRayado({
-  tamano = 256,
+  tamano = 160,
   repeticion = 2,
   semilla = 23,
 }: {
@@ -341,7 +341,7 @@ export function crearMapaNormalTejido({
  * manera irregular. Se dibuja con puntos difusos aleatorios sobre gris
  * neutro para que el bump no introduzca desplazamiento medio.
  */
-export function crearTexturaGrano(tamano = 256, repeticion = 7, fuerza = 0.4): Texture {
+export function crearTexturaGrano(tamano = 160, repeticion = 7, fuerza = 0.4): Texture {
   const lienzo = document.createElement('canvas')
   lienzo.width = tamano
   lienzo.height = tamano

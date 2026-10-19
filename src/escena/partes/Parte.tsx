@@ -22,6 +22,11 @@ type Props = {
  * fuera de React, sin re-renders) y coloca su grupo en
  * `desplazamiento × progreso`. El suavizado por capa hace que todas
  * arranquen y frenen con una inercia agradable aunque el scroll salte.
+ *
+ * (Se probó a cocer las mallas de cada capa en una sola por material para
+ * recortar llamadas de dibujo, pero cada pieza tiene su propio color, brillo
+ * y rugosidad: sin tocar el aspecto no se ahorraba nada, así que el despiece
+ * se deja tal cual.)
  */
 export function Parte({ desplazamiento, retardo = 0, giro = [0, 0, 0], children }: Props) {
   const grupo = useRef<Group>(null)

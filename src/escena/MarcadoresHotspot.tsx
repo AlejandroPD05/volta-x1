@@ -108,16 +108,36 @@ export function MarcadoresHotspot() {
 
   useEffect(() => {
     let raf = 0
+    // Último estado escrito por marcador: opacidad, puntero y z-index solo se
+    // tocan cuando cambian de verdad (la transform sí es por frame: la escena
+    // gira sola y el punto tiene que seguirla).
+    const ultimo = new Map<string, { opacidad: number; puntero: boolean; z: number }>()
+
     const pintar = () => {
       for (const dato of HOTSPOTS) {
         const el = contenedores.current.get(dato.id)
         const pos = marcadores.get(dato.id)
         if (!el || !pos) continue
+
         const visibilidad = escalonSuave(progresoPorRetardo(sim.explosion, dato.aparece))
-        el.style.opacity = String(visibilidad)
-        el.style.pointerEvents = visibilidad > 0.55 ? 'auto' : 'none'
+        const cache = ultimo.get(dato.id) ?? { opacidad: -1, puntero: false, z: -9999 }
+        const puntero = visibilidad > 0.55
+
+        if (visibilidad !== cache.opacidad) {
+          el.style.opacity = String(visibilidad)
+          cache.opacidad = visibilidad
+        }
+        if (puntero !== cache.puntero) {
+          el.style.pointerEvents = puntero ? 'auto' : 'none'
+          cache.puntero = puntero
+        }
+        if (pos.z !== cache.z) {
+          el.style.zIndex = String(pos.z)
+          cache.z = pos.z
+        }
+        ultimo.set(dato.id, cache)
+
         el.style.transform = `translate(${pos.x}px, ${pos.y}px) scale(${0.55 + 0.45 * visibilidad})`
-        el.style.zIndex = String(pos.z)
       }
       raf = requestAnimationFrame(pintar)
     }

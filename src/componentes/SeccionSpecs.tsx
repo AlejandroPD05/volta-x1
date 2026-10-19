@@ -8,7 +8,7 @@ import { ESPECIFICACIONES } from '../datos/especificaciones'
  */
 export function SeccionSpecs() {
   return (
-    <section id="specs" className="relative bg-[rgba(5,6,10,0.88)] py-24 backdrop-blur-xl sm:py-32">
+    <section id="specs" className="relative bg-[rgba(5,6,10,0.93)] py-24 sm:py-32">
       <div className="mx-auto w-[min(1120px,90vw)]">
         <header className="text-center">
           <p className="etiqueta-seccion">03 · Ficha técnica</p>

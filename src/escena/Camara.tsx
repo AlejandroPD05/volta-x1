@@ -1,10 +1,14 @@
 import { useEffect, useMemo, useRef } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 import { OrbitControls } from '@react-three/drei'
+import { Vector3 } from 'three'
 import type { OrbitControls as ControladorOrbital } from 'three-stdlib'
 import { sim } from '../estado/sim'
 import { useUsoTienda } from '../estado/usoTienda'
 import { esponjar, facil, mezclar } from '../utiles/mates'
+
+/** Vector de trabajo: evita reservar memoria nueva en cada fotograma. */
+const direccion = new Vector3()
 
 /**
  * Director de cámara.
@@ -66,7 +70,7 @@ export function Camara() {
     // Distancia: lejos en la intro, cerca en reposo, atrás al explotar.
     const distanciaObjetivo =
       distanciaFijada.current ?? mezclar(8.8, 3.5, facil(sim.intro)) + 1.4 * sim.explosion
-    const direccion = camara.position.clone().sub(c.target)
+    direccion.copy(camara.position).sub(c.target)
     const longitud = direccion.length()
     camara.position
       .copy(c.target)

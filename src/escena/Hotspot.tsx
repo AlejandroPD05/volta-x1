@@ -9,6 +9,12 @@ type Props = {
 }
 
 /**
+ * Rango de z-index de los marcadores por distancia a cámara (constante: no
+ * tiene sentido recalcularlo en cada fotograma y cada array reservado cuenta).
+ */
+const RANGO_Z: readonly [number, number] = [20, 0]
+
+/**
  * Ancla 3D de un marcador de hotspot.
  *
  * No pinta nada: en cada frame proyecta su posición de mundo a píxeles y la
@@ -41,9 +47,8 @@ export function Hotspot({ dato }: Props) {
 
     // z-index por distancia (mismo rango que usaba drei): los puntos más
     // cercanos a la cámara quedan por delante de los lejanos.
-    const rango: [number, number] = [20, 0]
-    const a = (rango[1] - rango[0]) / (camara.far - camara.near)
-    ranura.z = Math.round(a * distancia + (rango[1] - a * camara.far))
+    const a = (RANGO_Z[1] - RANGO_Z[0]) / (camara.far - camara.near)
+    ranura.z = Math.round(a * distancia + (RANGO_Z[1] - a * camara.far))
   })
 
   return <group ref={ancla} position={dato.posicion} />

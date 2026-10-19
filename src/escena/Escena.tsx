@@ -1,5 +1,5 @@
-import { useEffect } from 'react'
-import { Canvas } from '@react-three/fiber'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { AdaptiveDpr, ContactShadows, Sparkles } from '@react-three/drei'
 import gsap from 'gsap'
 import { sim } from '../estado/sim'
@@ -11,16 +11,22 @@ import { MarcadoresHotspot } from './MarcadoresHotspot'
 import { Onda } from './Onda'
 import { Raton } from './Raton'
 import { Simulador } from './Simulador'
+import { precompilarShaders } from './precompilar'
 
 /**
  * El lienzo 3D: un único `<Canvas>` fijo que atraviesa toda la página.
  *
  * Decisiones clave:
- * - `frameloop="never"` cuando la escena queda tapada por las secciones
- *   opacas del final: el bucle de render se apaga y ahorra batería/GPU.
- * - `dpr` limitado a 1.5 (en retina son ~44 % menos píxeles) y `<AdaptiveDpr />`
- *   con `performance.regress`: el despiece en movimiento pide menos resolución
- *   y la recupera solo, un instante después de detenerse.
+ * - `frameloop="never"` mientras los shaders se compilan y cuando la escena
+ *   queda tapada por las secciones opacas del final: el bucle de render no
+ *   gasta ni un frame de más.
+ * - La compilación de shaders va por `compileAsync` (ver `Compilador`): con
+ *   `KHR_parallel_shader_compile` la hace el driver en paralelo y la página
+ *   no se congela; sin la extensión compila igual que siempre.
+ * - `dpr` limitado a 1.25 (en retina son ~31 % menos píxeles que a 1.5) y
+ *   `<AdaptiveDpr />` con `performance.regress`: el despiece en movimiento,
+ *   la intro y cualquier tirón sostenido piden menos resolución y se recupera
+ *   sola, un instante después.
  * - `antialias` fuera: el postprocesado renderiza a sus propios targets, la
  *   bandera solo reservaba un buffer MSAA que nadie usaba.
  * - La sombra de contacto se hornea una vez por tramo de despiece (ver
@@ -28,18 +34,100 @@ import { Simulador } from './Simulador'
  * - `touchAction: 'pan-y'` para que en móvil el dedo siga haciendo scroll
  *   aunque el lienzo ocupe toda la pantalla.
  * - La intro anima `sim.intro` con GSAP (fuera de React); la cámara la lee
- *   cada frame sin re-renders.
+ *   cada frame sin re-renders. Arranca cuando la escena ya puede verse, no
+ *   antes.
  */
+
+/**
+ * Compila los shaders antes de encender el bucle.
+ *
+ * Medido con perfilador: la escena obliga al driver a compilar decenas de
+ * programas (~3 s de hilo principal en una GPU de escritorio) porque casi
+ * cada material estrena una combinación de mapas distinta. `precompilar`
+ * los reparte en lotes para que el driver trabaje en paralelo sin que la
+ * consulta de estado bloquee la página (ver `precompilar.ts`). Sin la
+ * extensión `KHR_parallel_shader_compile` compila igual que siempre.
+ */
+function Compilador({ alEstarListo }: { alEstarListo: () => void }) {
+  const gl = useThree((s) => s.gl)
+  const escena = useThree((s) => s.scene)
+  const camara = useThree((s) => s.camera)
+
+  useEffect(() => {
+    let vivo = true
+    void precompilarShaders(gl, escena, camara, () => vivo).then(() => {
+      if (vivo) alEstarListo()
+    })
+    return () => {
+      vivo = false
+    }
+  }, [gl, escena, camara, alEstarListo])
+
+  return null
+}
+
+/**
+ * Los primeros fotogramas terminan de compilar lo que vive fuera de la
+ * escena (las pasadas del postprocesado, la horneada de la sombra de
+ * contacto, los formadores de luz del entorno). Son unos pocos programas y
+ * unos pocos frames: la escena queda encendida pero el aviso de carga y la
+ * intro esperan a que el bucle ya rueda de verdad.
+ */
+function Calentador({ activo, alEstarListo }: { activo: boolean; alEstarListo: () => void }) {
+  const fotogramas = useRef(0)
+
+  useFrame(() => {
+    if (!activo) return
+    fotogramas.current += 1
+    if (fotogramas.current === 4) alEstarListo()
+  })
+
+  return null
+}
+
+/**
+ * Vigilante de fluidez: si la media de fotogramas se estira por encima de
+ * ~17 ms (menos de 58 fps) durante un segundo entero, pide menos resolución
+ * (`performance.regress`). `<AdaptiveDpr />` la baja al momento y la
+ * recupera sola cuando el tirón desaparece. En una GPU sobrada no se activa
+ * nunca; en un portátil integrado evita que el 3D se arrastre.
+ */
+function Vigilante() {
+  const regresar = useThree((s) => s.performance.regress)
+  const acumulado = useRef(0)
+  const fotogramas = useRef(0)
+
+  useFrame((_, delta) => {
+    acumulado.current += delta
+    fotogramas.current += 1
+    if (acumulado.current < 1) return
+    const media = acumulado.current / fotogramas.current
+    acumulado.current = 0
+    fotogramas.current = 0
+    if (media > 0.017) regresar()
+  })
+
+  return null
+}
+
 /**
  * Sombra de contacto horneada: se renderiza una sola vez y solo se vuelve a
- * hornear al cruzar cada cuarto del despiece (`key`), en lugar de
- * re-renderizar toda la escena en profundidad en cada fotograma.
+ * hornear cuando el despiece se detiene en un tramo nuevo, en lugar de
+ * re-renderizar toda la escena en profundidad en cada fotograma. El retardo
+ * de 180 ms evita hornear los tramos intermedios de un scroll rápido.
  */
 function SombraContacto() {
   const nivel = useUsoTienda((s) => Math.round(s.objetivoExplosion * 4))
+  const [horneado, setHorneado] = useState(nivel)
+
+  useEffect(() => {
+    const temporizador = window.setTimeout(() => setHorneado(nivel), 180)
+    return () => window.clearTimeout(temporizador)
+  }, [nivel])
+
   return (
     <ContactShadows
-      key={nivel}
+      key={horneado}
       position={[0, 0.012, 0]}
       opacity={0.55}
       blur={2.6}
@@ -57,8 +145,18 @@ export function Escena({ activa }: { activa: boolean }) {
   const reducido = useUsoTienda((s) => s.reducido)
   const introCompleta = useUsoTienda((s) => s.introCompleta)
   const hex = hexAcento(acento)
+  // `compilado`: shaders listos, el bucle puede encenderse.
+  // `lista`: además han corrido unos frames, así que el postprocesado y la
+  // sombra de contacto también están compilados y hay algo que enseñar.
+  const [compilado, setCompilado] = useState(false)
+  const [lista, setLista] = useState(false)
+  const alEstarCompilado = useCallback(() => setCompilado(true), [])
+  const alEstarListo = useCallback(() => setLista(true), [])
 
+  // La intro arranca cuando la escena puede verse de verdad: si empezara al
+  // montar, se gastaría mientras los shaders aún se están compilando.
   useEffect(() => {
+    if (!lista) return
     if (reducido) {
       sim.intro = 1
       useUsoTienda.getState().completarIntro()
@@ -74,20 +172,26 @@ export function Escena({ activa }: { activa: boolean }) {
     return () => {
       tween.kill()
     }
-  }, [reducido])
+  }, [lista, reducido])
 
   return (
     <>
       <Canvas
-        frameloop={activa ? 'always' : 'never'}
-        dpr={[1, 1.5]}
-        performance={{ min: 0.75, debounce: 260 }}
+        frameloop={activa && compilado ? 'always' : 'never'}
+        dpr={[1, 1.25]}
+        performance={{ min: 0.7, debounce: 240 }}
         camera={{ fov: 34, near: 0.1, far: 60, position: [0, 2.8, 8.8] }}
         gl={{
           alpha: true,
           antialias: false,
           stencil: false,
           powerPreference: 'high-performance',
+        }}
+        onCreated={({ gl: renderer }) => {
+          // En producción no hace falta el diagnóstico de shaders: `three`
+          // consulta el log de cada programa al crearlo y eso bloquea el hilo
+          // principal. En desarrollo se mantiene para ver los errores.
+          if (import.meta.env.PROD) renderer.debug.checkShaderErrors = false
         }}
         style={{ touchAction: 'pan-y' }}
       >
@@ -114,8 +218,21 @@ export function Escena({ activa }: { activa: boolean }) {
 
         <Camara />
         <AdaptiveDpr />
+        <Vigilante />
         <Efectos />
+
+        {/* Último en montarse: cuando corre, la escena ya está completa. */}
+        <Compilador alEstarListo={alEstarCompilado} />
+        <Calentador activo={compilado} alEstarListo={alEstarListo} />
       </Canvas>
+
+      {/* Aviso mientras la GPU compila los shaders (la página sigue viva) */}
+      {!lista && (
+        <p className="aviso-carga" role="status">
+          <span className="aviso-carga__pulso" aria-hidden="true" />
+          Preparando la escena 3D
+        </p>
+      )}
 
       {/* Puntos y tarjetas de los hotspots: HTML normal sobre el lienzo */}
       <MarcadoresHotspot />

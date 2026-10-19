@@ -8,9 +8,11 @@ import { useUsoTienda } from '../estado/usoTienda'
  * usuario alterna entre ambos.
  */
 export function ControlExplosion() {
-  const objetivo = useUsoTienda((s) => s.objetivoExplosion)
+  // Se suscribe al porcentaje redondeado, no al valor continuo: durante el
+  // scroll de la sección, el objetivo cambia en cada frame y este panel no
+  // necesita re-renderizarse por cada milésima (solo por cada 1 %).
+  const porcentaje = useUsoTienda((s) => Math.round(s.objetivoExplosion * 100))
   const definir = useUsoTienda((s) => s.definirObjetivo)
-  const porcentaje = Math.round(objetivo * 100)
 
   return (
     <div className="cristal interactivo flex w-full flex-col gap-3 rounded-2xl px-5 py-4">

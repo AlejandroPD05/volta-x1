@@ -30,11 +30,41 @@ export function Cursor() {
     let raf = 0
     let sobreInteractivo: Element | null = null
 
+    const paso = () => {
+      px += (x - px) * 0.5
+      py += (y - py) * 0.5
+      ax += (x - ax) * 0.16
+      ay += (y - ay) * 0.16
+      elPunto.style.transform = `translate(${px}px, ${py}px) translate(-50%, -50%)`
+      elAnillo.style.transform = `translate(${ax}px, ${ay}px) translate(-50%, -50%)`
+      // Cuando los dos círculos alcanzan al ratón el bucle se para: en reposo
+      // no hay nada que mover, y un rAF eterno por dos divs es CPU regalada.
+      if (
+        Math.abs(x - px) < 0.1 &&
+        Math.abs(y - py) < 0.1 &&
+        Math.abs(x - ax) < 0.1 &&
+        Math.abs(y - ay) < 0.1
+      ) {
+        px = x
+        py = y
+        ax = x
+        ay = y
+        raf = 0
+        return
+      }
+      raf = requestAnimationFrame(paso)
+    }
+
+    const despertar = () => {
+      if (!raf) raf = requestAnimationFrame(paso)
+    }
+
     const alMover = (e: MouseEvent) => {
       x = e.clientX
       y = e.clientY
       elPunto.style.opacity = '1'
       elAnillo.style.opacity = '1'
+      despertar()
     }
 
     const alPasar = (e: MouseEvent) => {
@@ -54,16 +84,7 @@ export function Cursor() {
       elAnillo.style.opacity = '1'
     }
 
-    const bucle = () => {
-      px += (x - px) * 0.5
-      py += (y - py) * 0.5
-      ax += (x - ax) * 0.16
-      ay += (y - ay) * 0.16
-      elPunto.style.transform = `translate(${px}px, ${py}px) translate(-50%, -50%)`
-      elAnillo.style.transform = `translate(${ax}px, ${ay}px) translate(-50%, -50%)`
-      raf = requestAnimationFrame(bucle)
-    }
-    raf = requestAnimationFrame(bucle)
+    despertar()
 
     window.addEventListener('mousemove', alMover)
     window.addEventListener('mouseover', alPasar)
@@ -71,7 +92,7 @@ export function Cursor() {
     document.documentElement.addEventListener('mouseenter', alEntrar)
 
     return () => {
-      cancelAnimationFrame(raf)
+      if (raf) cancelAnimationFrame(raf)
       window.removeEventListener('mousemove', alMover)
       window.removeEventListener('mouseover', alPasar)
       document.documentElement.removeEventListener('mouseleave', alSalir)

@@ -8,7 +8,7 @@ import { CanvasTexture, RepeatWrapping, type Texture } from 'three'
  * aristas atrapan la luz — el efecto de panal sin modelar cientos de
  * hexágonos. No depende de assets externos.
  */
-export function crearTexturaPanal(tamano = 512, repeticion = 3): Texture {
+export function crearTexturaPanal(tamano = 256, repeticion = 3): Texture {
   const lienzo = document.createElement('canvas')
   lienzo.width = tamano
   lienzo.height = tamano

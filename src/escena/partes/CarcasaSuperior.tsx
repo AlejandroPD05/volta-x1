@@ -39,7 +39,7 @@ export function CarcasaSuperior() {
     // brillo, no se ve como estuco.
     const grano = crearMapaNormal({ repeticion: 18, fuerza: 2.1, manchas: 0.55, semilla: 7 })
     const satinado = crearTexturaRugosidad({ contraste: 0.18, moteado: 0.02 })
-    const panal = crearTexturaPanal(512, 5)
+    const panal = crearTexturaPanal(256, 5)
 
     const materialCasco = new MeshPhysicalMaterial({
       color: '#191c22',

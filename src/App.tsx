@@ -74,8 +74,9 @@ export function App() {
 
   return (
     <>
-      {/* Capas fijas: fondo → escena 3D → ruido */}
+      {/* Capas fijas: fondo → viñeta → escena 3D → ruido */}
       <div className="fondo-fijo" aria-hidden="true" />
+      <div className="vineta" aria-hidden="true" />
       <div className="escena-fija">{webgl ? <Escena activa={activa} /> : <SinWebgl />}</div>
       <Cursor />
       <div className="ruido" aria-hidden="true" />
