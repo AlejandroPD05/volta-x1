@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
-import { AdaptiveDpr, ContactShadows, Sparkles } from '@react-three/drei'
+import { ContactShadows, Sparkles } from '@react-three/drei'
 import gsap from 'gsap'
 import { sim } from '../estado/sim'
 import { hexAcento, useUsoTienda } from '../estado/usoTienda'
@@ -20,13 +20,13 @@ import { precompilarShaders } from './precompilar'
  * - `frameloop="never"` mientras los shaders se compilan y cuando la escena
  *   queda tapada por las secciones opacas del final: el bucle de render no
  *   gasta ni un frame de más.
- * - La compilación de shaders va por `compileAsync` (ver `Compilador`): con
- *   `KHR_parallel_shader_compile` la hace el driver en paralelo y la página
- *   no se congela; sin la extensión compila igual que siempre.
- * - `dpr` limitado a 1.25 (en retina son ~31 % menos píxeles que a 1.5) y
- *   `<AdaptiveDpr />` con `performance.regress`: el despiece en movimiento,
- *   la intro y cualquier tirón sostenido piden menos resolución y se recupera
- *   sola, un instante después.
+ * - La compilación de shaders va por bloques, con la cola del driver corta
+ *   (ver `precompilar.ts`): la página sigue viva mientras la GPU prepara los
+ *   programas, en vez de congelarse.
+ * - `dpr` limitado a 1.25 y fijo. Antes un vigilante pedía menos resolución
+ *   cuando la media de fotogramas pasaba de 17 ms, pero cada cambio de `dpr`
+ *   redimensiona el lienzo (se borra el búfer) y se veía un parpadeo; en una
+ *   GPU normal no hacía falta y en una lenta el tope fijo ya protege.
  * - `antialias` fuera: el postprocesado renderiza a sus propios targets, la
  *   bandera solo reservaba un buffer MSAA que nadie usaba.
  * - La sombra de contacto se hornea una vez por tramo de despiece (ver
@@ -80,31 +80,6 @@ function Calentador({ activo, alEstarListo }: { activo: boolean; alEstarListo: (
     if (!activo) return
     fotogramas.current += 1
     if (fotogramas.current === 4) alEstarListo()
-  })
-
-  return null
-}
-
-/**
- * Vigilante de fluidez: si la media de fotogramas se estira por encima de
- * ~17 ms (menos de 58 fps) durante un segundo entero, pide menos resolución
- * (`performance.regress`). `<AdaptiveDpr />` la baja al momento y la
- * recupera sola cuando el tirón desaparece. En una GPU sobrada no se activa
- * nunca; en un portátil integrado evita que el 3D se arrastre.
- */
-function Vigilante() {
-  const regresar = useThree((s) => s.performance.regress)
-  const acumulado = useRef(0)
-  const fotogramas = useRef(0)
-
-  useFrame((_, delta) => {
-    acumulado.current += delta
-    fotogramas.current += 1
-    if (acumulado.current < 1) return
-    const media = acumulado.current / fotogramas.current
-    acumulado.current = 0
-    fotogramas.current = 0
-    if (media > 0.017) regresar()
   })
 
   return null
@@ -179,7 +154,6 @@ export function Escena({ activa }: { activa: boolean }) {
       <Canvas
         frameloop={activa && compilado ? 'always' : 'never'}
         dpr={[1, 1.25]}
-        performance={{ min: 0.7, debounce: 240 }}
         camera={{ fov: 34, near: 0.1, far: 60, position: [0, 2.8, 8.8] }}
         gl={{
           alpha: true,
@@ -217,8 +191,6 @@ export function Escena({ activa }: { activa: boolean }) {
         <SombraContacto />
 
         <Camara />
-        <AdaptiveDpr />
-        <Vigilante />
         <Efectos />
 
         {/* Último en montarse: cuando corre, la escena ya está completa. */}
