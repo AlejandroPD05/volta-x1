@@ -10,6 +10,8 @@ de cada pieza.
 > ⚠️ VOLTA es una marca ficticia. Producto, especificaciones y precio son
 > inventados: es una demo técnica de e-commerce, no una tienda real.
 
+> **Caso de estudio:** [de 2,9 s de congelación a 60 fps estables](docs/caso-60fps.md)
+
 ## Qué incluye
 
 - **Héroe 3D** con entrada cinematográfica (zoom + partículas + neones), luz de
@@ -41,7 +43,7 @@ de cada pieza.
 | Build | Vite 8 + TypeScript 6 |
 | UI | React 19 + Tailwind CSS v4 |
 | 3D | three.js + @react-three/fiber + @react-three/drei |
-| Post-proceso | @react-three/postprocessing (bloom + viñeta) |
+| Post-proceso | @react-three/postprocessing (bloom); viñeta por CSS |
 | Animación | GSAP (intro) + Framer Motion (DOM) + useFrame (escena) |
 | Estado | Zustand (objetivos/UI) + objeto mutable `sim` (por-frame) |
 | Tests | Vitest |
