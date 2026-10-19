@@ -5,7 +5,7 @@ tiempo real. La escena se descompone capa a capa con el scroll, gira con el
 arrastre y abre fichas técnicas en hotspots anclados a cada pieza.
 
 - **En vivo:** https://alejandropd05.github.io/volta-x1/
-- **Código:** https://github.com/AlejandroPD05/volta
+- **Código:** https://github.com/AlejandroPD05/volta-x1
 - **Stack:** React 19, React Three Fiber, three.js, postprocessing, GSAP,
   Framer Motion, Zustand y Vite.
 
@@ -213,7 +213,7 @@ npm test
 
 Los cambios están en dos commits:
 
-- [`e57cff8`](https://github.com/AlejandroPD05/volta/commit/e57cff8) — arranque
+- [`e57cff8`](https://github.com/AlejandroPD05/volta-x1/commit/e57cff8) — arranque
   por bloques y coste por fotograma.
-- [`e348881`](https://github.com/AlejandroPD05/volta/commit/e348881) — retirada
+- [`e348881`](https://github.com/AlejandroPD05/volta-x1/commit/e348881) — retirada
   del DPR adaptativo que causaba el parpadeo.
