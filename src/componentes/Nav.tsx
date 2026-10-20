@@ -1,4 +1,4 @@
-import { motion, useScroll, useSpring } from 'framer-motion'
+import { motion, useReducedMotion, useScroll, useSpring } from 'framer-motion'
 
 const ENLACES = [
   { href: '#tecnologia', texto: 'Tecnología' },
@@ -9,7 +9,11 @@ const ENLACES = [
 /** Barra superior fija con barra de progreso de scroll en el acento activo. */
 export function Nav() {
   const { scrollYProgress } = useScroll()
-  const barra = useSpring(scrollYProgress, { stiffness: 120, damping: 24, mass: 0.4 })
+  const reducido = useReducedMotion()
+  const muelle = useSpring(scrollYProgress, { stiffness: 120, damping: 24, mass: 0.4 })
+  // La barra es información de progreso: sin muelle sigue siendo útil, pero
+  // deja de moverse por su cuenta cuando el sistema pide menos movimiento.
+  const barra = reducido ? scrollYProgress : muelle
 
   return (
     <header className="fixed inset-x-0 top-0 z-40">

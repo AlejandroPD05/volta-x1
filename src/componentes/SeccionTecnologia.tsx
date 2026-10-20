@@ -12,12 +12,12 @@ export function SeccionTecnologia() {
   return (
     <section id="tecnologia" className="relative h-[280vh]">
       <div className="pointer-events-none sticky top-0 h-[100svh]">
-        <header className="absolute left-5 right-5 top-24 max-w-sm text-left sm:left-12">
+        <header className="tech__cabecera absolute left-5 right-5 top-24 max-w-sm text-left sm:left-12">
           <p className="etiqueta-seccion">02 · Ingeniería</p>
           <h2 className="titulo-grande mt-3 text-[clamp(1.5rem,3vw,2.3rem)] leading-tight text-white">
             Diseccionado hasta el <span className="texto-acento">último átomo</span>
           </h2>
-          <p className="texto-apagado mt-3 text-sm">
+          <p className="tech__descripcion texto-apagado mt-3 text-sm">
             Desliza para separar las seis capas. Cada punto es una pieza real: pásale
             el ratón por encima para leer sus números.
           </p>

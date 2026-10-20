@@ -4,6 +4,7 @@ import * as THREE from 'three'
 import type { Group } from 'three'
 import { HOTSPOTS } from '../datos/especificaciones'
 import { sim } from '../estado/sim'
+import { useUsoTienda } from '../estado/usoTienda'
 import { onda } from './sobrecarga'
 import { Hotspot } from './Hotspot'
 import { CarcasaInferior } from './partes/CarcasaInferior'
@@ -29,6 +30,8 @@ import { CarcasaSuperior } from './partes/CarcasaSuperior'
  */
 export function Raton() {
   const raiz = useRef<Group>(null)
+  const reducido = useUsoTienda((s) => s.reducido)
+  const quieto = useRef(false)
 
   // Puente de depuración (solo en desarrollo).
   useEffect(() => {
@@ -41,6 +44,19 @@ export function Raton() {
 
   useFrame((estado) => {
     if (!raiz.current) return
+
+    // Con movimiento reducido el modelo no flota: solo se actualiza la matriz
+    // una vez (o cuando se vuelve a activar el movimiento).
+    if (reducido) {
+      if (quieto.current) return
+      raiz.current.position.y = 0
+      raiz.current.updateWorldMatrix(true, false)
+      onda.invRaton.value.copy(raiz.current.matrixWorld).invert()
+      quieto.current = true
+      return
+    }
+    quieto.current = false
+
     const t = estado.clock.elapsedTime
     raiz.current.position.y = Math.sin(t * 0.9) * 0.014 * (1 - sim.explosion)
     // La onda de acento se mide en coordenadas del ratón: mantén fresca la

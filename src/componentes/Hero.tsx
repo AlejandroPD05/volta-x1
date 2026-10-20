@@ -27,13 +27,13 @@ export function Hero() {
   return (
     <section
       id="inicio"
-      className="relative flex h-[100svh] flex-col items-center justify-between overflow-hidden pb-10 pt-24 sm:pb-14"
+      className="hero relative flex h-[100svh] flex-col items-center justify-between overflow-hidden pb-10 pt-24 sm:pb-14"
     >
       <motion.div
         initial="hidden"
         animate="visible"
         variants={contenedor}
-        className="flex flex-col items-center px-6 text-center"
+        className="hero__intro flex flex-col items-center px-6 text-center"
       >
         <motion.p
           variants={item}
@@ -44,12 +44,15 @@ export function Hero() {
 
         <motion.h1
           variants={item}
-          className="titulo-grande mt-5 text-[clamp(3.2rem,11vw,7.5rem)] leading-none text-white"
+          className="hero__titulo titulo-grande mt-5 text-[clamp(3.2rem,11vw,7.5rem)] leading-none text-white"
         >
           VOLTA <span className="texto-acento texto-glow">X1</span>
         </motion.h1>
 
-        <motion.p variants={item} className="texto-apagado mt-4 max-w-md text-sm sm:text-base">
+        <motion.p
+          variants={item}
+          className="hero__descripcion texto-apagado mt-4 max-w-md text-sm sm:text-base"
+        >
           El ratón inalámbrico de 45 gramos que se desmonta delante de tus ojos.
           Arrástralo, gíralo y mira lo que llevamos dentro.
         </motion.p>
@@ -61,9 +64,9 @@ export function Hero() {
         initial="hidden"
         animate="visible"
         variants={contenedor}
-        className="flex flex-col items-center gap-5 px-6"
+        className="hero__acciones flex flex-col items-center gap-5 px-6"
       >
-        <motion.ul variants={item} className="flex flex-wrap justify-center gap-2">
+        <motion.ul variants={item} className="hero__chips flex flex-wrap justify-center gap-2">
           {CHIPS.map((chip) => (
             <li
               key={chip}
@@ -74,7 +77,10 @@ export function Hero() {
           ))}
         </motion.ul>
 
-        <motion.div variants={item} className="flex flex-wrap items-center justify-center gap-3">
+        <motion.div
+          variants={item}
+          className="hero__botones flex flex-wrap items-center justify-center gap-3"
+        >
           <button type="button" onClick={() => irA('tecnologia')} className="boton-neon">
             Ver la tecnología interna
           </button>
@@ -83,7 +89,10 @@ export function Hero() {
           </button>
         </motion.div>
 
-        <motion.p variants={item} className="texto-apagado font-mono text-[10px] uppercase tracking-[0.25em]">
+        <motion.p
+          variants={item}
+          className="hero__pista texto-apagado font-mono text-[10px] uppercase tracking-[0.25em]"
+        >
           Arrastra para girar · desliza para descomponer
         </motion.p>
       </motion.div>

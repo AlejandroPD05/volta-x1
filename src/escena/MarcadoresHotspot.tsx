@@ -103,25 +103,65 @@ function PuntoHotspot({ dato, indice, registrar }: PropsPunto) {
   )
 }
 
-export function MarcadoresHotspot() {
+export function MarcadoresHotspot({ activa }: { activa: boolean }) {
   const contenedores = useRef(new Map<string, HTMLDivElement>())
 
   useEffect(() => {
+    const mapa = contenedores.current
+    // Con la escena apagada (pie de página) o todavía compilando no hay nada
+    // que proyectar: el bucle se apaga y los pulsos de los hotspots también.
+    if (!activa) {
+      for (const el of mapa.values()) {
+        el.removeAttribute('data-visible')
+        el.style.pointerEvents = 'none'
+      }
+      return
+    }
+
     let raf = 0
-    // Último estado escrito por marcador: opacidad, puntero y z-index solo se
-    // tocan cuando cambian de verdad (la transform sí es por frame: la escena
-    // gira sola y el punto tiene que seguirla).
-    const ultimo = new Map<string, { opacidad: number; puntero: boolean; z: number }>()
+    // Último estado escrito por marcador: solo se toca el DOM cuando cambia
+    // de verdad. La transform también se cachea; en reposo (sobre todo con
+    // movimiento reducido) la escena no se mueve y no hace falta reescribirla.
+    type Cache = {
+      opacidad: number
+      puntero: boolean
+      visible: boolean
+      z: number
+      x: number
+      y: number
+      escala: number
+      ajusteX: number
+    }
+    const ultimo = new Map<string, Cache>()
 
     const pintar = () => {
+      // La tarjeta abierta manda sobre el resto de puntos: su ancla sube de
+      // z-index para que ningún marcador se dibuje encima del contenido.
+      const idActivo = useUsoTienda.getState().hotspotActivo
+      const anchoVista = window.innerWidth
+      const anchoTarjeta = Math.min(268, anchoVista * 0.78)
+      const margen = 12
+      const minimo = margen + anchoTarjeta / 2
+      const maximo = anchoVista - margen - anchoTarjeta / 2
+
       for (const dato of HOTSPOTS) {
-        const el = contenedores.current.get(dato.id)
+        const el = mapa.get(dato.id)
         const pos = marcadores.get(dato.id)
         if (!el || !pos) continue
 
         const visibilidad = escalonSuave(progresoPorRetardo(sim.explosion, dato.aparece))
-        const cache = ultimo.get(dato.id) ?? { opacidad: -1, puntero: false, z: -9999 }
+        const cache = ultimo.get(dato.id) ?? {
+          opacidad: -1,
+          puntero: false,
+          visible: false,
+          z: -9999,
+          x: Number.NaN,
+          y: Number.NaN,
+          escala: -1,
+          ajusteX: Number.NaN,
+        }
         const puntero = visibilidad > 0.55
+        const visible = visibilidad > 0.02
 
         if (visibilidad !== cache.opacidad) {
           el.style.opacity = String(visibilidad)
@@ -131,19 +171,46 @@ export function MarcadoresHotspot() {
           el.style.pointerEvents = puntero ? 'auto' : 'none'
           cache.puntero = puntero
         }
-        if (pos.z !== cache.z) {
-          el.style.zIndex = String(pos.z)
-          cache.z = pos.z
+        if (visible !== cache.visible) {
+          el.toggleAttribute('data-visible', visible)
+          cache.visible = visible
+        }
+        const z = dato.id === idActivo ? 50 : pos.z
+        if (z !== cache.z) {
+          el.style.zIndex = String(z)
+          cache.z = z
+        }
+
+        // En móvil, una tarjeta centrada sobre un punto pegado al borde se
+        // saldría de la pantalla. El desplazamiento se aplica a la tarjeta;
+        // el punto se queda donde marca la pieza.
+        const centro = Math.min(maximo, Math.max(minimo, pos.x))
+        const ajusteX = centro - pos.x
+        if (ajusteX !== cache.ajusteX) {
+          el.style.setProperty('--ajuste-x', `${ajusteX}px`)
+          cache.ajusteX = ajusteX
+        }
+
+        const escala = 0.55 + 0.45 * visibilidad
+        if (pos.x !== cache.x || pos.y !== cache.y || escala !== cache.escala) {
+          el.style.transform = `translate(${pos.x}px, ${pos.y}px) scale(${escala})`
+          cache.x = pos.x
+          cache.y = pos.y
+          cache.escala = escala
         }
         ultimo.set(dato.id, cache)
-
-        el.style.transform = `translate(${pos.x}px, ${pos.y}px) scale(${0.55 + 0.45 * visibilidad})`
       }
       raf = requestAnimationFrame(pintar)
     }
     raf = requestAnimationFrame(pintar)
-    return () => cancelAnimationFrame(raf)
-  }, [])
+    return () => {
+      cancelAnimationFrame(raf)
+      for (const el of mapa.values()) {
+        el.removeAttribute('data-visible')
+        el.style.pointerEvents = 'none'
+      }
+    }
+  }, [activa])
 
   return (
     <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>

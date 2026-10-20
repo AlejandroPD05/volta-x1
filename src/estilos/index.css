@@ -89,6 +89,24 @@ body {
   z-index: 1;
 }
 
+/* Los puntos viven por debajo de la interfaz; al abrir una tarjeta la capa
+   sube para que el texto no la tape. Así los marcadores no flotan sobre el
+   panel de controles ni sobre los títulos. */
+.capa-hotspots {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.capa-hotspots:has(.tarjeta-hotspot) {
+  z-index: 20;
+}
+
+.capa-hotspots--oculta {
+  visibility: hidden;
+}
+
 /* Viñeta de la escena: antes era un pase de postprocesado a pantalla completa
    en cada frame; como capa CSS el compositor la pinta gratis. Va detrás del
    lienzo (z 0, después del fondo): el centro queda limpio y las esquinas
@@ -353,12 +371,18 @@ input[type='range'].deslizador::-moz-range-thumb {
   transform: translate(-50%, -50%) scale(1.18);
 }
 
+/* El pulso solo corre cuando el marcador está visible. Antes los seis puntos
+   mantenían su animación infinita incluso con el contenedor a opacidad 0. */
 .hotspot__punto::after {
   content: '';
   position: absolute;
   inset: -9px;
   border-radius: 999px;
   border: 1px solid color-mix(in oklab, var(--acento) 45%, transparent);
+  opacity: 0;
+}
+
+.hotspot[data-visible] .hotspot__punto::after {
   animation: pulso 2.4s ease-out infinite;
 }
 
@@ -381,11 +405,13 @@ input[type='range'].deslizador::-moz-range-thumb {
    si lo pusiéramos aquí, su animación (inline transform) lo pisaría. */
 .tarjeta-hotspot {
   position: absolute;
-  left: 0;
+  /* La capa de marcadores ajusta esta variable para que la tarjeta no se
+     salga por los lados en móvil; en escritorio vale 0. */
+  left: var(--ajuste-x, 0px);
   width: min(268px, 78vw);
   padding: 1rem 1.1rem;
   border-radius: 16px;
-  background: rgba(8, 10, 16, 0.92);
+  background: rgba(8, 10, 16, 0.96);
   border: 1px solid color-mix(in oklab, var(--acento) 42%, var(--borde));
   box-shadow:
     0 18px 50px -20px rgba(0, 0, 0, 0.9),
@@ -400,11 +426,12 @@ input[type='range'].deslizador::-moz-range-thumb {
   top: 26px;
 }
 
-/* Línea conectora entre el punto y la tarjeta */
+/* Línea conectora entre el punto y la tarjeta. Si la tarjeta se ha desplazado
+   para caber en móvil, la línea se mueve con ella para no perder el anclaje. */
 .tarjeta-hotspot::after {
   content: '';
   position: absolute;
-  left: 50%;
+  left: calc(50% - var(--ajuste-x, 0px));
   width: 1px;
   height: 26px;
 }
@@ -445,19 +472,88 @@ html.cursor-propio * {
 }
 
 .cursor-anillo {
+  --escala: 1;
   width: 34px;
   height: 34px;
-  border: 1.5px solid rgba(255, 255, 255, 0.75);
+}
+
+/* El tamaño se anima con `transform: scale` en un pseudo-elemento: el
+   compositor puede hacerlo sin recalcular el layout del anillo. El grosor se
+   compensa para que el borde se vea igual de fino en los dos tamaños. */
+.cursor-anillo::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  border: calc(1.5px / var(--escala)) solid rgba(255, 255, 255, 0.75);
+  transform: scale(var(--escala));
   transition:
-    width 0.22s ease,
-    height 0.22s ease,
+    transform 0.22s ease,
+    border-width 0.22s ease,
     border-color 0.22s ease;
 }
 
 .cursor-anillo--grande {
-  width: 56px;
-  height: 56px;
+  --escala: 1.65;
+}
+
+.cursor-anillo--grande::before {
   border-color: var(--acento);
+}
+
+/* ------------------------------------------------------------------ */
+/*  Ventanas muy bajas (móvil apaisado / paneles divididos)            */
+/* ------------------------------------------------------------------ */
+@media (max-height: 620px) {
+  #inicio.hero {
+    padding-top: 5rem;
+    padding-bottom: 1.25rem;
+  }
+
+  #inicio .hero__titulo {
+    margin-top: 1rem;
+    font-size: clamp(2.4rem, 12vh, 4rem);
+  }
+
+  .hero__descripcion,
+  .hero__chips,
+  .hero__pista {
+    display: none;
+  }
+
+  .hero__acciones {
+    gap: 0.75rem;
+  }
+
+  #tecnologia .tech__cabecera {
+    top: 4.5rem;
+  }
+
+  #tecnologia .tech__descripcion {
+    display: none;
+  }
+
+  #tecnologia .tech__cabecera h2 {
+    font-size: clamp(1.35rem, 5.5vh, 1.8rem);
+  }
+
+  #color .color__sticky {
+    padding-top: 4.5rem;
+    padding-bottom: 1rem;
+  }
+
+  #color .color__descripcion {
+    display: none;
+  }
+
+  #color .color__cabecera h2 {
+    font-size: clamp(1.6rem, 6vh, 2.2rem);
+  }
+
+  #color .color__panel {
+    gap: 0.25rem;
+    padding: 0.5rem;
+  }
 }
 
 /* ------------------------------------------------------------------ */
@@ -468,14 +564,23 @@ html.cursor-propio * {
     scroll-behavior: auto;
   }
 
-  .marquesina {
+  .marquesina,
+  .aviso-carga__pulso {
     animation: none;
+  }
+
+  .hotspot__punto::after {
+    display: none;
   }
 
   *,
   *::before,
   *::after {
     animation-duration: 0.001ms !important;
+    /* Sin esto, los pulsos `infinite` seguían reprogramándose cada milisegundo. */
+    animation-iteration-count: 1 !important;
+    animation-delay: 0ms !important;
     transition-duration: 0.001ms !important;
+    transition-delay: 0ms !important;
   }
 }

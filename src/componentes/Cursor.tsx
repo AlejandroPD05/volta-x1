@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useUsoTienda } from '../estado/usoTienda'
 
 /**
  * Cursor personalizado (solo punteros finos).
@@ -12,6 +13,7 @@ export function Cursor() {
   const punto = useRef<HTMLDivElement>(null)
   const anillo = useRef<HTMLDivElement>(null)
   const [fino] = useState(() => window.matchMedia('(pointer: fine)').matches)
+  const reducido = useUsoTienda((s) => s.reducido)
 
   useEffect(() => {
     if (!fino) return
@@ -30,13 +32,17 @@ export function Cursor() {
     let raf = 0
     let sobreInteractivo: Element | null = null
 
+    const colocar = () => {
+      elPunto.style.transform = `translate(${px}px, ${py}px) translate(-50%, -50%)`
+      elAnillo.style.transform = `translate(${ax}px, ${ay}px) translate(-50%, -50%)`
+    }
+
     const paso = () => {
       px += (x - px) * 0.5
       py += (y - py) * 0.5
       ax += (x - ax) * 0.16
       ay += (y - ay) * 0.16
-      elPunto.style.transform = `translate(${px}px, ${py}px) translate(-50%, -50%)`
-      elAnillo.style.transform = `translate(${ax}px, ${ay}px) translate(-50%, -50%)`
+      colocar()
       // Cuando los dos círculos alcanzan al ratón el bucle se para: en reposo
       // no hay nada que mover, y un rAF eterno por dos divs es CPU regalada.
       if (
@@ -49,6 +55,7 @@ export function Cursor() {
         py = y
         ax = x
         ay = y
+        colocar()
         raf = 0
         return
       }
@@ -64,6 +71,16 @@ export function Cursor() {
       y = e.clientY
       elPunto.style.opacity = '1'
       elAnillo.style.opacity = '1'
+      if (reducido) {
+        // Con movimiento reducido, el cursor no persigue: se pega al puntero y
+        // se evita el rAF continuo del efecto de inercia.
+        px = x
+        py = y
+        ax = x
+        ay = y
+        colocar()
+        return
+      }
       despertar()
     }
 
@@ -84,7 +101,7 @@ export function Cursor() {
       elAnillo.style.opacity = '1'
     }
 
-    despertar()
+    if (!reducido) despertar()
 
     window.addEventListener('mousemove', alMover)
     window.addEventListener('mouseover', alPasar)
@@ -99,7 +116,7 @@ export function Cursor() {
       document.documentElement.removeEventListener('mouseenter', alEntrar)
       document.documentElement.classList.remove('cursor-propio')
     }
-  }, [fino])
+  }, [fino, reducido])
 
   if (!fino) return null
 

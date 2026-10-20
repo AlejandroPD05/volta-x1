@@ -36,7 +36,10 @@ export function Parte({ desplazamiento, retardo = 0, giro = [0, 0, 0], children 
     const g = grupo.current
     if (!g) return
     const objetivo = escalonSuave(progresoPorRetardo(sim.explosion, retardo))
+    // En reposo no se reescriben posición y rotación en cada fotograma.
+    if (progreso.current === objetivo) return
     progreso.current = esponjar(progreso.current, objetivo, 9, delta)
+    if (Math.abs(progreso.current - objetivo) < 0.0001) progreso.current = objetivo
     const p = progreso.current
     g.position.set(desplazamiento[0] * p, desplazamiento[1] * p, desplazamiento[2] * p)
     g.rotation.set(giro[0] * p, giro[1] * p, giro[2] * p)

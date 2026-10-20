@@ -7,7 +7,6 @@ import { hexAcento, useUsoTienda } from '../estado/usoTienda'
 import { Camara } from './Camara'
 import { Efectos } from './Efectos'
 import { Iluminacion } from './Iluminacion'
-import { MarcadoresHotspot } from './MarcadoresHotspot'
 import { Onda } from './Onda'
 import { Raton } from './Raton'
 import { Simulador } from './Simulador'
@@ -205,9 +204,6 @@ export function Escena({ activa }: { activa: boolean }) {
           Preparando la escena 3D
         </p>
       )}
-
-      {/* Puntos y tarjetas de los hotspots: HTML normal sobre el lienzo */}
-      <MarcadoresHotspot />
     </>
   )
 }

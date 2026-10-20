@@ -24,11 +24,12 @@ import { parchearOnda } from '../sobrecarga'
  */
 export function RuedaScroll() {
   const acento = useUsoTienda((s) => s.acento)
+  const reducido = useUsoTienda((s) => s.reducido)
   const hex = hexAcento(acento)
   const giro = useRef<Group>(null)
 
   useFrame((_, delta) => {
-    if (giro.current) {
+    if (!reducido && giro.current) {
       // Gira siempre despacio; al descomponerse acelera (se "desenrolla").
       giro.current.rotation.x -= delta * (0.6 + sim.explosion * 3.2)
     }

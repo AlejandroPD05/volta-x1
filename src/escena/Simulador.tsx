@@ -1,4 +1,4 @@
-import { useFrame, useThree } from '@react-three/fiber'
+import { useFrame } from '@react-three/fiber'
 import { sim } from '../estado/sim'
 import { useUsoTienda } from '../estado/usoTienda'
 import { esponjar } from '../utiles/mates'
@@ -10,15 +10,17 @@ import { esponjar } from '../utiles/mates'
  * salto (o el usuario suelta el deslizador), todas las capas y la cámara
  * se mueven con la misma inercia en lugar de teletransportarse.
  *
- * Mientras el despiece viaja pide menos resolución (`regress`): el movimiento
- * tapa la pérdida de nitidez y `<AdaptiveDpr />` la devuelve solo, un instante
- * después de que todo se detenga.
+ * La DPR es fija (el DPR adaptativo se retiró porque cada cambio borraba el
+ * búfer y parpadeaba), así que aquí no se pide `regress`: sin `<AdaptiveDpr />`
+ * no había ningún efecto, solo trabajo extra por frame.
  */
 export function Simulador() {
-  const regresar = useThree((s) => s.performance.regress)
   useFrame((_, delta) => {
     const objetivo = useUsoTienda.getState().objetivoExplosion
-    if (Math.abs(sim.explosion - objetivo) > 0.02) regresar()
+    if (Math.abs(sim.explosion - objetivo) < 0.0001) {
+      sim.explosion = objetivo
+      return
+    }
     sim.explosion = esponjar(sim.explosion, objetivo, 4.5, delta)
   })
   return null
