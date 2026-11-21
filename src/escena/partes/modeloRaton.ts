@@ -37,11 +37,10 @@ export type ModeloRaton = Record<Pieza, { geometria: BufferGeometry; posicion: V
 
 /**
  * UV por proyección triplanar (1 unidad UV = 10 mm): cada vértice se
- * proyecta sobre el plano al que más mira su normal. Así los mapas de grano
- * tienen la misma escala física en todo el ratón y el GLB no transporta UV.
- * La malla sigue indexada: desindexarla triplicaba los vértices y la GPU lo
- * pagaba (en las costuras entre proyecciones el grano se estira un poco,
- * pero con un relieve tan fino no se aprecia).
+ * proyecta sobre el plano al que más mira su normal. Van al canal 1 (`uv1`)
+ * para los mapas de grano y satinado, que repiten con la misma escala física
+ * en todo el ratón. El canal 0 (`uv`) es el desplegado de Blender de las
+ * piezas con mapas horneados; las que no lo tienen usan también el triplanar.
  */
 function conUvTriplanar(geometria: BufferGeometry): BufferGeometry {
   const pos = geometria.attributes.position
@@ -67,7 +66,9 @@ function conUvTriplanar(geometria: BufferGeometry): BufferGeometry {
     uv[i * 2] = u * escala
     uv[i * 2 + 1] = v * escala
   }
-  geometria.setAttribute('uv', new Float32BufferAttribute(uv, 2))
+  const triplanar = new Float32BufferAttribute(uv, 2)
+  geometria.setAttribute('uv1', triplanar)
+  if (!geometria.attributes.uv) geometria.setAttribute('uv', triplanar)
   return geometria
 }
 

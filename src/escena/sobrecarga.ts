@@ -60,6 +60,77 @@ export function claveOnda(): string {
   return 'voltOnda'
 }
 
+function crearParcheOnda(conMascara: boolean) {
+  return function (
+    this: MeshStandardMaterial,
+    shader: WebGLProgramParametersWithUniforms,
+  ): void {
+    shader.uniforms.uOndaInvRaton = onda.invRaton
+    shader.uniforms.uOndaFrente = onda.frente
+    shader.uniforms.uOndaAncho = onda.ancho
+    shader.uniforms.uOndaActivo = onda.activo
+    shader.uniforms.uOndaDesde = onda.desde
+    shader.uniforms.uOndaHasta = onda.hasta
+    shader.uniforms.uOndaBrillo = { value: this.emissiveIntensity }
+
+    shader.vertexShader = shader.vertexShader
+      .replace(
+        '#include <common>',
+        ['#include <common>', 'uniform mat4 uOndaInvRaton;', 'varying vec3 vOndaPos;'].join(
+          '\n',
+        ),
+      )
+      .replace(
+        '#include <begin_vertex>',
+        [
+          '#include <begin_vertex>',
+          'vOndaPos = (uOndaInvRaton * modelMatrix * vec4(transformed, 1.0)).xyz;',
+        ].join('\n'),
+      )
+
+    // Con máscara, el emisivo es la luz de la tira horneada en el canal G
+    // del mapa (`emissiveMap`): solo brilla donde la tira alumbra el casco.
+    const emisivo = conMascara
+      ? [
+          'float ondaMascara = 1.0;',
+          '#ifdef USE_EMISSIVEMAP',
+          '  ondaMascara = texture2D( emissiveMap, vEmissiveMapUv ).g;',
+          '#endif',
+          'totalEmissiveRadiance *= ondaMascara;',
+        ]
+      : ['#include <emissivemap_fragment>', 'float ondaMascara = 1.0;']
+
+    shader.fragmentShader = shader.fragmentShader
+      .replace(
+        '#include <common>',
+        [
+          '#include <common>',
+          'uniform float uOndaFrente;',
+          'uniform float uOndaAncho;',
+          'uniform float uOndaActivo;',
+          'uniform float uOndaBrillo;',
+          'uniform vec3 uOndaDesde;',
+          'uniform vec3 uOndaHasta;',
+          'varying vec3 vOndaPos;',
+        ].join('\n'),
+      )
+      .replace(
+        '#include <emissivemap_fragment>',
+        [
+          ...emisivo,
+          '{',
+          '  float ondaAvance = smoothstep(uOndaFrente - uOndaAncho, uOndaFrente + uOndaAncho, vOndaPos.z);',
+          '  vec3 ondaColor = mix(uOndaDesde, uOndaHasta, ondaAvance) * uOndaBrillo * ondaMascara;',
+          '  totalEmissiveRadiance = mix(totalEmissiveRadiance, ondaColor, uOndaActivo);',
+          '  float ondaDist = (vOndaPos.z - uOndaFrente) * 6.0;',
+          '  float ondaCresta = exp(-ondaDist * ondaDist);',
+          '  totalEmissiveRadiance += (vec3(0.75) + uOndaHasta * 0.55) * ondaCresta * uOndaActivo * 1.5 * ondaMascara;',
+          '}',
+        ].join('\n'),
+      )
+  }
+}
+
 /**
  * Inyecta la sobrecarga en un material estándar emisivo.
  *
@@ -71,59 +142,18 @@ export function claveOnda(): string {
  * fragmento, el emisivo se mezcla entre `desde` y `hasta` según pase el
  * frente, con una cresta blanca en el borde que hace florecer el bloom.
  */
-export function aplicarOnda(
-  this: MeshStandardMaterial,
-  shader: WebGLProgramParametersWithUniforms,
-): void {
-  shader.uniforms.uOndaInvRaton = onda.invRaton
-  shader.uniforms.uOndaFrente = onda.frente
-  shader.uniforms.uOndaAncho = onda.ancho
-  shader.uniforms.uOndaActivo = onda.activo
-  shader.uniforms.uOndaDesde = onda.desde
-  shader.uniforms.uOndaHasta = onda.hasta
-  shader.uniforms.uOndaBrillo = { value: this.emissiveIntensity }
+export const aplicarOnda = crearParcheOnda(false)
+const aplicarOndaLuz = crearParcheOnda(true)
 
-  shader.vertexShader = shader.vertexShader
-    .replace(
-      '#include <common>',
-      ['#include <common>', 'uniform mat4 uOndaInvRaton;', 'varying vec3 vOndaPos;'].join('\n'),
-    )
-    .replace(
-      '#include <begin_vertex>',
-      [
-        '#include <begin_vertex>',
-        'vOndaPos = (uOndaInvRaton * modelMatrix * vec4(transformed, 1.0)).xyz;',
-      ].join('\n'),
-    )
-
-  shader.fragmentShader = shader.fragmentShader
-    .replace(
-      '#include <common>',
-      [
-        '#include <common>',
-        'uniform float uOndaFrente;',
-        'uniform float uOndaAncho;',
-        'uniform float uOndaActivo;',
-        'uniform float uOndaBrillo;',
-        'uniform vec3 uOndaDesde;',
-        'uniform vec3 uOndaHasta;',
-        'varying vec3 vOndaPos;',
-      ].join('\n'),
-    )
-    .replace(
-      '#include <emissivemap_fragment>',
-      [
-        '#include <emissivemap_fragment>',
-        '{',
-        '  float ondaAvance = smoothstep(uOndaFrente - uOndaAncho, uOndaFrente + uOndaAncho, vOndaPos.z);',
-        '  vec3 ondaColor = mix(uOndaDesde, uOndaHasta, ondaAvance) * uOndaBrillo;',
-        '  totalEmissiveRadiance = mix(totalEmissiveRadiance, ondaColor, uOndaActivo);',
-        '  float ondaDist = (vOndaPos.z - uOndaFrente) * 6.0;',
-        '  float ondaCresta = exp(-ondaDist * ondaDist);',
-        '  totalEmissiveRadiance += (vec3(0.75) + uOndaHasta * 0.55) * ondaCresta * uOndaActivo * 1.5;',
-        '}',
-      ].join('\n'),
-    )
+/**
+ * Luz de la tira sobre el propio casco: el emisivo (color = acento) se
+ * modula por la luz horneada en Blender (canal G de `emissiveMap`), y la
+ * sobrecarga la recorre igual que a los LEDs.
+ */
+export function parchearLuzTira<T extends MeshStandardMaterial>(material: T): T {
+  material.onBeforeCompile = aplicarOndaLuz
+  material.customProgramCacheKey = () => 'voltOndaLuz'
+  return material
 }
 
 /** Deja un material listo para la sobrecarga (parche + caché de programa). */

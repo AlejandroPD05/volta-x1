@@ -1,5 +1,6 @@
 import { Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
+import { AgXToneMapping } from 'three'
 import { ContactShadows, Sparkles } from '@react-three/drei'
 import gsap from 'gsap'
 import { sim } from '../estado/sim'
@@ -185,6 +186,9 @@ export function Escena({ activa }: { activa: boolean }) {
           powerPreference: 'high-performance',
         }}
         onCreated={({ gl: renderer }) => {
+          // AgX, como en los renders de Cycles. Con bloom lo aplica el
+          // compositor (`Efectos`); en modo ligero, el propio renderer.
+          renderer.toneMapping = AgXToneMapping
           // En producción no hace falta el diagnóstico de shaders: `three`
           // consulta el log de cada programa al crearlo y eso bloquea el hilo
           // principal. En desarrollo se mantiene para ver los errores.

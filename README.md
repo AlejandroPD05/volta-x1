@@ -130,6 +130,12 @@ npm test        # vitest (unitarios)
   blender --background modelado/raton.blend --python modelado/render.py -- modelado/renders heroe lateral trasera rueda
   ```
 
+- **Mapas horneados** (`src/escena/modelos/horneado/`, 224 kB): Cycles hornea
+  del modelo denso al ligero el mapa de normales (sin facetas del diezmado), la
+  oclusión ambiental y la luz que la tira proyecta sobre el propio casco; en la
+  web esa luz se tiñe con el acento y la recorre la sobrecarga. Tras generar
+  el GLB, `python modelado/empaquetar.py` (Pillow) los pasa a WebP.
+- **Tonemapping AgX** en el compositor, el mismo de los renders de Cycles.
 - **Luz de la escena 3D**: el mismo HDRI `studio_small_09` (reducido a
   512 × 256, 400 kB, en `src/escena/modelos/estudio.hdr`) es la base del mapa
   de entorno; los `Lightformer`s de neón van encima.

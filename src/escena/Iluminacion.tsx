@@ -19,12 +19,12 @@ export function Iluminacion() {
 
   return (
     <>
-      <ambientLight intensity={0.35} />
+      <ambientLight intensity={0.08} />
       <spotLight
         position={[0.4, 4.4, 2.6]}
         angle={0.6}
         penumbra={1}
-        intensity={45}
+        intensity={32}
         color="#ffffff"
       />
       <pointLight color={hex} intensity={16} distance={9} position={[-2.4, 1.6, -1.4]} />
@@ -34,7 +34,7 @@ export function Iluminacion() {
         files={urlEstudio}
         resolution={256}
         frames={1}
-        environmentIntensity={0.6}
+        environmentIntensity={0.38}
         environmentRotation={[0, Math.PI * 0.6, 0]}
       >
         <Lightformer

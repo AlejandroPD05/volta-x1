@@ -9,10 +9,11 @@ import {
 } from 'three'
 import { useUsoTienda, hexAcento } from '../../estado/usoTienda'
 import { Parte } from './Parte'
-import { crearTexturasRayado, crearTexturaGrano, crearTexturaRugosidad } from './texturas'
+import { crearTexturasRayado, crearTexturaGrano } from './texturas'
+import { useMapasHorneados } from './mapasHorneados'
 import { useModeloRaton } from './modeloRaton'
 import { MM, NARIZ_Z } from './geometriaRaton'
-import { parchearOnda } from '../sobrecarga'
+import { parchearLuzTira, parchearOnda } from '../sobrecarga'
 import { OndaSuelo } from './OndaSuelo'
 
 /**
@@ -74,26 +75,14 @@ export function CarcasaInferior() {
   const acento = useUsoTienda((s) => s.acento)
   const hex = hexAcento(acento)
 
+  const mapas = useMapasHorneados()
+
   const materiales = useMemo(() => {
-    const grano = crearTexturaGrano(160, 5, 0.55)
-    const satinado = crearTexturaRugosidad({ semilla: 31 })
-    satinado.repeat.set(0.1, 0.1)
     const rayado = crearTexturasRayado()
     rayado.rugosidad.repeat.set(0.6, 0.6)
     rayado.normal.repeat.set(0.6, 0.6)
 
     return {
-      // Flancos: plástico granulado, algo más claro y seco que la cubierta.
-      flancos: new MeshStandardMaterial({
-        color: '#0c0d10',
-        vertexColors: true,
-        roughness: 0.78,
-        envMapIntensity: 0.45,
-        metalness: 0,
-        roughnessMap: satinado,
-        bumpMap: grano,
-        bumpScale: 0.3,
-      }),
       interior: new MeshStandardMaterial({
         color: '#0b0c10',
         vertexColors: true,
@@ -121,9 +110,33 @@ export function CarcasaInferior() {
     }
   }, [])
 
-  // Solo la tira y la lente dependen del acento.
+  // Grano de los flancos en la rugosidad (UV triplanares, canal 1): el
+  // relieve va en el mapa de normales horneado y three no admite los dos.
+  const grano = useMemo(() => {
+    const t = crearTexturaGrano(160, 5, 0.55)
+    t.channel = 1
+    return t
+  }, [])
+
+  // La tira, la lente y la luz de la tira sobre los flancos dependen del acento.
   const materialesAcento = useMemo(
     () => ({
+      // Flancos: plástico granulado, más seco que la cubierta, con los mapas
+      // horneados (normales, oclusión y la luz de la tira que los baña).
+      flancos: parchearLuzTira(
+        new MeshStandardMaterial({
+          color: '#0c0d10',
+          roughness: 1.45,
+          roughnessMap: grano,
+          envMapIntensity: 0.45,
+          metalness: 0,
+          normalMap: mapas.CarcasaInferior.normal,
+          aoMap: mapas.CarcasaInferior.mat,
+          emissive: hex,
+          emissiveMap: mapas.CarcasaInferior.mat,
+          emissiveIntensity: 0.9,
+        }),
+      ),
       tira: parchearOnda(
         new MeshStandardMaterial({
           color: '#0a0c10',
@@ -142,7 +155,7 @@ export function CarcasaInferior() {
         }),
       ),
     }),
-    [hex],
+    [hex, grano, mapas],
   )
 
   // Puerto USB-C (hueco de 8,6 × 3 mm a 4,6 mm del suelo): fondo negro y
@@ -151,7 +164,7 @@ export function CarcasaInferior() {
   return (
     <Parte desplazamiento={[0, -0.02, 0]} retardo={0}>
       <OndaSuelo />
-      <mesh geometry={modelo.CarcasaInferior.geometria} material={materiales.flancos} />
+      <mesh geometry={modelo.CarcasaInferior.geometria} material={materialesAcento.flancos} />
       <mesh geometry={modelo.CarcasaInferiorInterior.geometria} material={materiales.interior} />
       <mesh geometry={modelo.TiraRGB.geometria} material={materialesAcento.tira} />
       <mesh geometry={modelo.PatinDelantero.geometria} material={materiales.ptfe} />

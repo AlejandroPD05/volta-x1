@@ -741,20 +741,147 @@ def hornear_ao(piezas):
         print('AO', ob.name, round(min(valores), 2), round(sum(valores) / len(valores), 2))
 
 
+# Piezas con mapas horneados (resolución de textura). El resto se queda con
+# AO en el color de vértice.
+HORNEADAS = {
+    'CarcasaSuperior': 2048,
+    'CarcasaInferior': 2048,
+    'BotonLateralDelantero': 512,
+    'BotonLateralTrasero': 512,
+    'BotonDPI': 512,
+    'Bandeja': 512,
+}
+HORNEADO = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'horneado')
+
+
+def desplegar_uv(ob):
+    for o in bpy.context.view_layer.objects:
+        o.select_set(o == ob)
+    bpy.context.view_layer.objects.active = ob
+    bpy.ops.object.mode_set(mode='EDIT')
+    bpy.ops.mesh.select_all(action='SELECT')
+    bpy.ops.uv.smart_project(angle_limit=math.radians(60), island_margin=0.004)
+    bpy.ops.object.mode_set(mode='OBJECT')
+
+
+def hornear_mapas(piezas, altas):
+    """Del modelo denso al ligero, en Cycles:
+    - normal: relieve y curvatura de la malla densa (sin facetas del diezmado),
+    - ao: oclusión ambiental con las piezas densas como oclusores,
+    - luz: luz difusa que la tira RGB (blanca) proyecta sobre el propio ratón;
+      en la web se tiñe con el acento, así que gira y cambia con el ratón.
+    """
+    escena = bpy.context.scene
+    escena.render.engine = 'CYCLES'
+    prefs = bpy.context.preferences.addons['cycles'].preferences
+    for tipo in ('OPTIX', 'CUDA'):
+        try:
+            prefs.compute_device_type = tipo
+            prefs.get_devices()
+            if any(d.type != 'CPU' for d in prefs.devices):
+                for d in prefs.devices:
+                    d.use = d.type != 'CPU'
+                escena.cycles.device = 'GPU'
+                break
+        except TypeError:
+            continue
+    if escena.world is None:
+        escena.world = bpy.data.worlds.new('mundo')
+    escena.world.use_nodes = True
+    escena.world.node_tree.nodes['Background'].inputs['Strength'].default_value = 0.0
+    escena.world.light_settings.distance = 6.0
+    os.makedirs(HORNEADO, exist_ok=True)
+
+    # Las ligeras con gemela densa no deben tapar los rayos: el horneado parte
+    # de la superficie densa y la ligera está a décimas de milímetro.
+    for ob in piezas:
+        if ob.name in altas:
+            ob.visible_diffuse = ob.visible_glossy = ob.visible_shadow = False
+            ob.visible_transmission = ob.visible_volume_scatter = False
+
+    # La tira emite en blanco (solo cuenta en el horneado de luz).
+    tira = bpy.data.objects['TiraRGB']
+    emisor = bpy.data.materials.new('EmisorTira')
+    emisor.use_nodes = True
+    nodos = emisor.node_tree.nodes
+    nodos.clear()
+    salida = nodos.new('ShaderNodeOutputMaterial')
+    emision = nodos.new('ShaderNodeEmission')
+    emision.inputs['Strength'].default_value = 0.0
+    emisor.node_tree.links.new(emision.outputs[0], salida.inputs['Surface'])
+    tira.data.materials.clear()
+    tira.data.materials.append(emisor)
+
+    for nombre, res in HORNEADAS.items():
+        ob = bpy.data.objects[nombre]
+        alta = altas[nombre]
+        mat = bpy.data.materials.new('Horneo_' + nombre)
+        mat.use_nodes = True
+        nodo_img = mat.node_tree.nodes.new('ShaderNodeTexImage')
+        mat.node_tree.nodes.active = nodo_img
+        ob.data.materials.clear()
+        ob.data.materials.append(mat)
+        if not alta.data.materials:
+            alta.data.materials.append(bpy.data.materials.new('Alta'))
+        for o in bpy.context.view_layer.objects:
+            o.select_set(o in (ob, alta))
+        bpy.context.view_layer.objects.active = ob
+        for tipo, sufijo, muestras, emite in (
+            ('NORMAL', 'normal', 1, 0.0),
+            ('AO', 'ao', 128, 0.0),
+            ('DIFFUSE', 'luz', 256, 40.0),
+        ):
+            img = bpy.data.images.new(f'{nombre}_{sufijo}', res, res, alpha=False, float_buffer=False)
+            if tipo == 'NORMAL':
+                img.colorspace_settings.name = 'Non-Color'
+            nodo_img.image = img
+            emision.inputs['Strength'].default_value = emite
+            escena.cycles.samples = muestras
+            hornear = escena.render.bake
+            hornear.use_selected_to_active = True
+            hornear.cage_extrusion = 0.35
+            hornear.max_ray_distance = 0.8
+            hornear.margin = 8
+            if tipo == 'DIFFUSE':
+                hornear.use_pass_direct = True
+                hornear.use_pass_indirect = True
+                hornear.use_pass_color = False
+            bpy.ops.object.bake(type=tipo, normal_space='TANGENT')
+            img.filepath_raw = os.path.join(HORNEADO, f'{nombre}_{sufijo}.png')
+            img.file_format = 'PNG'
+            img.save()
+            print('HORNEADO', nombre, sufijo)
+        ob.data.materials.clear()
+    emision.inputs['Strength'].default_value = 0.0
+    for ob in piezas:
+        ob.visible_diffuse = ob.visible_glossy = ob.visible_shadow = True
+
+
 def acabar(piezas, cuerpo):
     borrar(cuerpo)
     for ob in list(bpy.data.objects):
         if ob not in piezas:
             borrar(ob)
+    # Gemelas densas (con bisel) de las piezas horneadas.
+    altas = {}
+    for nombre in HORNEADAS:
+        ob = bpy.data.objects[nombre]
+        alta = copia(ob, nombre + '_alta')
+        biselar(alta, 0.2)
+        altas[nombre] = alta
     for ob in piezas:
         diezmar(ob, PRESUPUESTO.get(ob.name, 600))
         if ob.name in BISELADAS:
             biselar(ob)
         else:
             suavizar(ob)
+        if ob.name in HORNEADAS:
+            desplegar_uv(ob)
     # La rueda gira sobre su eje: su origen va en el centro.
     bpy.data.objects['Rueda'].location = P(0, RUEDA_Z, RUEDA_H)
-    hornear_ao(piezas)
+    hornear_ao([ob for ob in piezas if ob.name not in HORNEADAS])
+    hornear_mapas(piezas, altas)
+    borrar(*altas.values())
 
 
 def preparar_blend(piezas, cuerpo):
@@ -795,9 +922,9 @@ def exportar(piezas):
         export_materials='NONE',
         export_normals=True,
         export_vertex_color='ACTIVE',
-        # Las UV triplanares se recalculan en el navegador (modeloRaton.ts):
-        # el GLB pesa un 25 % menos.
-        export_texcoords=False,
+        # UV del desplegado (mapas horneados); las piezas sin desplegar no
+        # llevan y el navegador les calcula UV triplanares.
+        export_texcoords=True,
         export_tangents=False,
     )
     print('GLB', SALIDA, os.path.getsize(SALIDA))

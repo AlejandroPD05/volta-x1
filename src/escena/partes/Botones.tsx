@@ -1,8 +1,10 @@
 import { useMemo } from 'react'
 import { RoundedBox } from '@react-three/drei'
-import { MeshStandardMaterial, Vector2 } from 'three'
+import { MeshStandardMaterial } from 'three'
 import { Parte, SoloDespiece } from './Parte'
-import { crearMapaNormal } from './texturas'
+import { useMapasHorneados } from './mapasHorneados'
+import { useUsoTienda, hexAcento } from '../../estado/usoTienda'
+import { parchearLuzTira } from '../sobrecarga'
 import { useModeloRaton } from './modeloRaton'
 
 /**
@@ -15,19 +17,27 @@ import { useModeloRaton } from './modeloRaton'
  */
 export function Botones() {
   const modelo = useModeloRaton()
-  // Los laterales comparten el grano de los flancos: son el mismo plástico.
-  const materialLateral = useMemo(
-    () =>
-      new MeshStandardMaterial({
-        color: '#0a0b0d',
-        vertexColors: true,
-        roughness: 0.45,
-        metalness: 0.05,
-        normalMap: crearMapaNormal({ repeticion: 4, fuerza: 1.6, manchas: 0.2, semilla: 13 }),
-        normalScale: new Vector2(0.12, 0.12),
-      }),
-    [],
-  )
+  const mapas = useMapasHorneados()
+  const acento = useUsoTienda((s) => s.acento)
+  const hex = hexAcento(acento)
+  // Laterales: plástico satinado con sus mapas horneados (relieve, oclusión
+  // del rebaje y la luz de la tira, que los roza por arriba).
+  const materiales = useMemo(() => {
+    const lateral = (pieza: 'BotonLateralDelantero' | 'BotonLateralTrasero') =>
+      parchearLuzTira(
+        new MeshStandardMaterial({
+          color: '#0a0b0d',
+          roughness: 0.45,
+          metalness: 0.05,
+          normalMap: mapas[pieza].normal,
+          aoMap: mapas[pieza].mat,
+          emissive: hex,
+          emissiveMap: mapas[pieza].mat,
+          emissiveIntensity: 0.9,
+        }),
+      )
+    return { delantero: lateral('BotonLateralDelantero'), trasero: lateral('BotonLateralTrasero') }
+  }, [mapas, hex])
 
   return (
     <Parte desplazamiento={[0, 1.22, 0.06]} retardo={0.2}>
@@ -77,8 +87,8 @@ export function Botones() {
           del Surge (el delantero más corto y biselado por delante, el
           trasero más largo y en flecha hacia la cola). Asoman 0,75 mm de su
           rebaje en la carcasa inferior. */}
-      <mesh geometry={modelo.BotonLateralDelantero.geometria} material={materialLateral} />
-      <mesh geometry={modelo.BotonLateralTrasero.geometria} material={materialLateral} />
+      <mesh geometry={modelo.BotonLateralDelantero.geometria} material={materiales.delantero} />
+      <mesh geometry={modelo.BotonLateralTrasero.geometria} material={materiales.trasero} />
     </Parte>
   )
 }
