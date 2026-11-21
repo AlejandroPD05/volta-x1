@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { ContactShadows, Sparkles } from '@react-three/drei'
 import gsap from 'gsap'
@@ -24,8 +24,10 @@ import { precompilarShaders } from './precompilar'
  *   programas, en vez de congelarse.
  * - `dpr` limitado a 1.25 y fijo. Antes un vigilante pedía menos resolución
  *   cuando la media de fotogramas pasaba de 17 ms, pero cada cambio de `dpr`
- *   redimensiona el lienzo (se borra el búfer) y se veía un parpadeo; en una
- *   GPU normal no hacía falta y en una lenta el tope fijo ya protege.
+ *   redimensiona el lienzo (se borra el búfer) y se veía un parpadeo. Ahora
+ *   solo hay un cambio posible, y ocurre mientras se prepara la escena (antes
+ *   de enseñarla): si `Calentador` mide fotogramas de más de 30 ms, la escena
+ *   arranca en modo ligero (dpr 0,75 y sin bloom).
  * - `antialias` fuera: el postprocesado renderiza a sus propios targets, la
  *   bandera solo reservaba un buffer MSAA que nadie usaba.
  * - La sombra de contacto se hornea una vez por tramo de despiece (ver
@@ -74,11 +76,25 @@ function Compilador({ alEstarListo }: { alEstarListo: () => void }) {
  */
 function Calentador({ activo, alEstarListo }: { activo: boolean; alEstarListo: () => void }) {
   const fotogramas = useRef(0)
+  const muestras = useRef<number[]>([])
+  const resuelto = useRef(false)
 
-  useFrame(() => {
-    if (!activo) return
+  useFrame((_, delta) => {
+    if (!activo || resuelto.current) return
     fotogramas.current += 1
-    if (fotogramas.current === 4) alEstarListo()
+    // Los 4 primeros terminan de compilar: no cuentan para medir.
+    if (fotogramas.current <= 4) return
+    // Saltos de más de 250 ms (pestaña tapada) no dicen nada de la GPU.
+    if (delta <= 0.25) muestras.current.push(delta)
+    if (muestras.current.length < 12 && fotogramas.current < 24) return
+    resuelto.current = true
+    // Vigía de rendimiento: se decide AQUÍ, antes de enseñar la escena y de
+    // arrancar la intro. Antes se medía después y, a 10 fps, el cambio a modo
+    // ligero llegaba a los ~15 s: la escena cambiaba de aspecto a la vista.
+    const orden = [...muestras.current].sort((a, b) => a - b)
+    const mediana = orden[orden.length >> 1]
+    if (mediana !== undefined && mediana > 0.03) useUsoTienda.getState().activarLigero()
+    alEstarListo()
   })
 
   return null
@@ -92,6 +108,10 @@ function Calentador({ activo, alEstarListo }: { activo: boolean; alEstarListo: (
  */
 function SombraContacto() {
   const nivel = useUsoTienda((s) => Math.round(s.objetivoExplosion * 4))
+  // Las chispas de la intro también proyectan sombra: horneada con ellas
+  // delante, el suelo queda como un tablero gris. Se vuelve a hornear al
+  // terminar la intro, cuando ya no están.
+  const introCompleta = useUsoTienda((s) => s.introCompleta)
   const [horneado, setHorneado] = useState(nivel)
 
   useEffect(() => {
@@ -101,8 +121,11 @@ function SombraContacto() {
 
   return (
     <ContactShadows
-      key={horneado}
-      position={[0, 0.012, 0]}
+      key={`${horneado}-${introCompleta}`}
+      // Por debajo del punto más bajo del ratón (patines a −0,006 menos la
+      // flotación de 0,014): la cámara de la sombra no debe nacer dentro
+      // de la base.
+      position={[0, -0.022, 0]}
       opacity={0.55}
       blur={2.6}
       far={3.2}
@@ -118,6 +141,7 @@ export function Escena({ activa }: { activa: boolean }) {
   const acento = useUsoTienda((s) => s.acento)
   const reducido = useUsoTienda((s) => s.reducido)
   const introCompleta = useUsoTienda((s) => s.introCompleta)
+  const ligero = useUsoTienda((s) => s.ligero)
   const hex = hexAcento(acento)
   // `compilado`: shaders listos, el bucle puede encenderse.
   // `lista`: además han corrido unos frames, así que el postprocesado y la
@@ -152,7 +176,7 @@ export function Escena({ activa }: { activa: boolean }) {
     <>
       <Canvas
         frameloop={activa && compilado ? 'always' : 'never'}
-        dpr={[1, 1.25]}
+        dpr={ligero ? 0.75 : [1, 1.25]}
         camera={{ fov: 34, near: 0.1, far: 60, position: [0, 2.8, 8.8] }}
         gl={{
           alpha: true,
@@ -168,33 +192,37 @@ export function Escena({ activa }: { activa: boolean }) {
         }}
         style={{ touchAction: 'pan-y' }}
       >
-        <Simulador />
-        <Iluminacion />
-        <Raton />
-        <Onda />
+        {/* El ratón llega como GLB: todo espera a la malla para que la
+            precompilación encuentre la escena completa. */}
+        <Suspense fallback={null}>
+          <Simulador />
+          <Iluminacion />
+          <Raton />
+          <Onda />
 
-        {/* Chispas de neón durante la intro */}
-        {!introCompleta && (
-          <Sparkles
-            count={130}
-            scale={[5.5, 3.4, 5.5]}
-            size={2.6}
-            speed={0.55}
-            opacity={1}
-            color={hex}
-            position={[0, 0.4, 0]}
-          />
-        )}
+          {/* Chispas de neón durante la intro */}
+          {!introCompleta && (
+            <Sparkles
+              count={130}
+              scale={[5.5, 3.4, 5.5]}
+              size={2.6}
+              speed={0.55}
+              opacity={1}
+              color={hex}
+              position={[0, 0.4, 0]}
+            />
+          )}
 
-        {/* Sombra de contacto suave (blob) en el suelo, sin shadow maps */}
-        <SombraContacto />
+          {/* Sombra de contacto suave (blob) en el suelo, sin shadow maps */}
+          <SombraContacto />
 
-        <Camara />
-        <Efectos />
+          <Camara />
+          {!ligero && <Efectos />}
 
-        {/* Último en montarse: cuando corre, la escena ya está completa. */}
-        <Compilador alEstarListo={alEstarCompilado} />
-        <Calentador activo={compilado} alEstarListo={alEstarListo} />
+          {/* Último en montarse: cuando corre, la escena ya está completa. */}
+          <Compilador alEstarListo={alEstarCompilado} />
+          <Calentador activo={compilado} alEstarListo={alEstarListo} />
+        </Suspense>
       </Canvas>
 
       {/* Aviso mientras la GPU compila los shaders (la página sigue viva) */}

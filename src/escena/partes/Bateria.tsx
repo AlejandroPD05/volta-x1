@@ -90,140 +90,143 @@ export function Bateria() {
   )
 
   return (
-    <Parte desplazamiento={[0, 0.5, -0.06]} retardo={0.44}>
-      {/* Lámina aislante oscura: apoya la celda sobre el fondo (y=0.098) */}
-      <mesh position={[0, 0.0995, -0.2]}>
-        <boxGeometry args={[0.34, 0.003, 0.44]} />
-        <meshStandardMaterial color="#0a0c10" roughness={0.9} metalness={0.1} />
-      </mesh>
-
-      {/* Celda LiPo: y 0.102→0.154, z −0.40→0.0, centrada (0, 0.128, −0.20) */}
-      <RoundedBox args={[0.3, 0.052, 0.4]} radius={0.012} smoothness={4} position={[0, 0.128, -0.2]}>
-        <meshStandardMaterial
-          color="#d9dfe6"
-          roughness={0.32}
-          metalness={0.75}
-          normalMap={filmCelda.grano}
-          normalScale={filmCelda.escala}
-        />
-      </RoundedBox>
-
-      {/* Banda de etiqueta envolviendo la celda */}
-      <RoundedBox args={[0.304, 0.056, 0.16]} radius={0.012} smoothness={4} position={[0, 0.128, -0.2]}>
-        <meshStandardMaterial color="#1a1e26" roughness={0.5} metalness={0.3} />
-      </RoundedBox>
-      {LINEAS_ETIQUETA.map(([x, z, largo], i) => (
-        <mesh key={i} position={[x, 0.1562, z]}>
-          <boxGeometry args={[largo, 0.0014, 0.0075]} />
-          <meshStandardMaterial color="#cfd8e0" roughness={0.5} metalness={0.05} />
+    <Parte desplazamiento={[0, 0.5, -0.06]} retardo={0.44} interior>
+      {/* Bajo la placa, apoyada en el suelo de la base (pared de 1,8 mm). */}
+      <group position={[0, -0.06, 0]}>
+        {/* Lámina aislante oscura: apoya la celda sobre el fondo (y=0.098) */}
+        <mesh position={[0, 0.0995, -0.2]}>
+          <boxGeometry args={[0.34, 0.003, 0.44]} />
+          <meshStandardMaterial color="#0a0c10" roughness={0.9} metalness={0.1} />
         </mesh>
-      ))}
 
-      {/* Cinta kapton ámbar semitransparente cruzando la celda */}
-      {KAPTON.map((z, i) => (
-        <mesh key={i} position={[0, 0.128, z]}>
-          <boxGeometry args={[0.304, 0.0555, 0.012]} />
-          <meshStandardMaterial color="#c8862c" roughness={0.35} transparent opacity={0.55} />
-        </mesh>
-      ))}
+        {/* Celda LiPo: y 0.102→0.154, z −0.40→0.0, centrada (0, 0.128, −0.20) */}
+        <RoundedBox args={[0.3, 0.052, 0.4]} radius={0.012} smoothness={4} position={[0, 0.128, -0.2]}>
+          <meshStandardMaterial
+            color="#d9dfe6"
+            roughness={0.32}
+            metalness={0.75}
+            normalMap={filmCelda.grano}
+            normalScale={filmCelda.escala}
+          />
+        </RoundedBox>
 
-      {/* Pestañas metálicas (+ y −) asomando por el borde delantero */}
-      {[0.06, -0.06].map((x, i) => (
-        <mesh key={i} position={[x, 0.138, 0.008]}>
-          <boxGeometry args={[0.016, 0.0015, 0.028]} />
-          <meshStandardMaterial color="#cdd3da" roughness={0.2} metalness={1} />
-        </mesh>
-      ))}
-      {/* Marcas de polaridad sobre la envoltura, junto a las pestañas */}
-      <mesh position={[0.06, 0.1545, -0.018]}>
-        <boxGeometry args={[0.006, 0.0015, 0.006]} />
-        <meshStandardMaterial color="#b8402f" roughness={0.5} />
-      </mesh>
-      <mesh position={[-0.06, 0.1545, -0.018]}>
-        <boxGeometry args={[0.006, 0.0015, 0.006]} />
-        <meshStandardMaterial color="#22262c" roughness={0.5} />
-      </mesh>
+        {/* Banda de etiqueta envolviendo la celda */}
+        <RoundedBox args={[0.304, 0.056, 0.16]} radius={0.012} smoothness={4} position={[0, 0.128, -0.2]}>
+          <meshStandardMaterial color="#1a1e26" roughness={0.5} metalness={0.3} />
+        </RoundedBox>
+        {LINEAS_ETIQUETA.map(([x, z, largo], i) => (
+          <mesh key={i} position={[x, 0.1562, z]}>
+            <boxGeometry args={[largo, 0.0014, 0.0075]} />
+            <meshStandardMaterial color="#cfd8e0" roughness={0.5} metalness={0.05} />
+          </mesh>
+        ))}
 
-      {/* Cables soldados a las pestañas: rojo (+) y negro (−) hasta el JST */}
-      <mesh geometry={cableRojo}>
-        <meshStandardMaterial color="#b8352a" roughness={0.5} metalness={0.1} />
-      </mesh>
-      <mesh geometry={cableNegro}>
-        <meshStandardMaterial color="#131519" roughness={0.5} metalness={0.1} />
-      </mesh>
-      {[0.06, -0.06].map((x, i) => (
-        <mesh key={i} position={[x, 0.1405, 0.024]}>
-          <sphereGeometry args={[0.0055, 8, 6]} />
-          <meshStandardMaterial color="#b9c2cc" roughness={0.35} metalness={0.9} />
-        </mesh>
-      ))}
+        {/* Cinta kapton ámbar semitransparente cruzando la celda */}
+        {KAPTON.map((z, i) => (
+          <mesh key={i} position={[0, 0.128, z]}>
+            <boxGeometry args={[0.304, 0.0555, 0.012]} />
+            <meshStandardMaterial color="#c8862c" roughness={0.35} transparent opacity={0.55} />
+          </mesh>
+        ))}
 
-      {/* Conector JST blanco con contactos dorados, sobre el fondo */}
-      <RoundedBox args={[0.026, 0.016, 0.014]} radius={0.0025} smoothness={3} position={[0.02, 0.106, 0.052]}>
-        <meshStandardMaterial color="#e6e2d8" roughness={0.45} metalness={0.05} />
-      </RoundedBox>
-      {[0.013, 0.027].map((x, i) => (
-        <mesh key={i} position={[x, 0.103, 0.0455]}>
-          <boxGeometry args={[0.0045, 0.003, 0.01]} />
-          <meshStandardMaterial color="#c9a24a" roughness={0.3} metalness={1} />
+        {/* Pestañas metálicas (+ y −) asomando por el borde delantero */}
+        {[0.06, -0.06].map((x, i) => (
+          <mesh key={i} position={[x, 0.138, 0.008]}>
+            <boxGeometry args={[0.016, 0.0015, 0.028]} />
+            <meshStandardMaterial color="#cdd3da" roughness={0.2} metalness={1} />
+          </mesh>
+        ))}
+        {/* Marcas de polaridad sobre la envoltura, junto a las pestañas */}
+        <mesh position={[0.06, 0.1545, -0.018]}>
+          <boxGeometry args={[0.006, 0.0015, 0.006]} />
+          <meshStandardMaterial color="#b8402f" roughness={0.5} />
         </mesh>
-      ))}
+        <mesh position={[-0.06, 0.1545, -0.018]}>
+          <boxGeometry args={[0.006, 0.0015, 0.006]} />
+          <meshStandardMaterial color="#22262c" roughness={0.5} />
+        </mesh>
 
-      {/* Módulo inalámbrico 2.4G: placa hija FR4 sobre el fondo, en (0.10, 0.08) */}
-      <RoundedBox args={[0.09, 0.004, 0.07]} radius={0.0015} smoothness={2} position={[0.1, 0.1, 0.08]}>
-        <meshStandardMaterial color="#10231a" roughness={0.55} metalness={0.2} />
-      </RoundedBox>
-      {PADS_MODULO.map(([x, z], i) => (
-        <mesh key={i} position={[x, 0.1022, z]}>
-          <boxGeometry args={[0.007, 0.0008, 0.007]} />
-          <meshStandardMaterial color="#c9a24a" roughness={0.3} metalness={1} />
+        {/* Cables soldados a las pestañas: rojo (+) y negro (−) hasta el JST */}
+        <mesh geometry={cableRojo}>
+          <meshStandardMaterial color="#b8352a" roughness={0.5} metalness={0.1} />
         </mesh>
-      ))}
-      {/* Chip de radio + cristal del módulo */}
-      <mesh position={[0.075, 0.1036, 0.062]}>
-        <boxGeometry args={[0.016, 0.0035, 0.012]} />
-        <meshStandardMaterial color="#14161c" roughness={0.35} metalness={0.4} />
-      </mesh>
-      <mesh position={[0.092, 0.103, 0.06]}>
-        <boxGeometry args={[0.007, 0.0022, 0.005]} />
-        <meshStandardMaterial color="#c7ccd2" roughness={0.2} metalness={1} />
-      </mesh>
+        <mesh geometry={cableNegro}>
+          <meshStandardMaterial color="#131519" roughness={0.5} metalness={0.1} />
+        </mesh>
+        {[0.06, -0.06].map((x, i) => (
+          <mesh key={i} position={[x, 0.1405, 0.024]}>
+            <sphereGeometry args={[0.0055, 8, 6]} />
+            <meshStandardMaterial color="#b9c2cc" roughness={0.35} metalness={0.9} />
+          </mesh>
+        ))}
 
-      {/* Antena serpenteante de cobre: barras + puentes + alimentación */}
-      {BARRAS_ANTENA.map((x, i) => (
-        <mesh key={i} position={[x, 0.1022, 0.107]}>
-          <boxGeometry args={[0.0028, 0.0008, 0.014]} />
-          <meshStandardMaterial color="#c9a24a" roughness={0.3} metalness={1} />
-        </mesh>
-      ))}
-      {PUENTES_ANTENA.map(([x, z], i) => (
-        <mesh key={i} position={[x, 0.1022, z]}>
-          <boxGeometry args={[0.0102, 0.0008, 0.0026]} />
-          <meshStandardMaterial color="#c9a24a" roughness={0.3} metalness={1} />
-        </mesh>
-      ))}
-      {ALIMENTACION_ANTENA.map(([x, z, sx, sz], i) => (
-        <mesh key={i} position={[x, 0.1022, z]}>
-          <boxGeometry args={[sx, 0.0008, sz]} />
-          <meshStandardMaterial color="#c9a24a" roughness={0.3} metalness={1} />
-        </mesh>
-      ))}
+        {/* Conector JST blanco con contactos dorados, sobre el fondo */}
+        <RoundedBox args={[0.026, 0.016, 0.014]} radius={0.0025} smoothness={3} position={[0.02, 0.106, 0.052]}>
+          <meshStandardMaterial color="#e6e2d8" roughness={0.45} metalness={0.05} />
+        </RoundedBox>
+        {[0.013, 0.027].map((x, i) => (
+          <mesh key={i} position={[x, 0.103, 0.0455]}>
+            <boxGeometry args={[0.0045, 0.003, 0.01]} />
+            <meshStandardMaterial color="#c9a24a" roughness={0.3} metalness={1} />
+          </mesh>
+        ))}
 
-      {/* LED de estado: poste propio junto al JST, lejos de la celda */}
-      <mesh position={[-0.045, 0.104, 0.064]}>
-        <boxGeometry args={[0.014, 0.012, 0.014]} />
-        <meshStandardMaterial color="#17191e" roughness={0.45} metalness={0.3} />
-      </mesh>
-      <mesh position={[-0.045, 0.112, 0.064]}>
-        <boxGeometry args={[0.009, 0.004, 0.009]} />
-        <meshStandardMaterial
-          color="#05070b"
-          emissive={hex}
-          emissiveIntensity={4}
-          onBeforeCompile={aplicarOnda}
-          customProgramCacheKey={claveOnda}
-        />
-      </mesh>
+        {/* Módulo inalámbrico 2.4G: placa hija FR4 sobre el fondo, en (0.10, 0.08) */}
+        <RoundedBox args={[0.09, 0.004, 0.07]} radius={0.0015} smoothness={2} position={[0.1, 0.1, 0.08]}>
+          <meshStandardMaterial color="#10231a" roughness={0.55} metalness={0.2} />
+        </RoundedBox>
+        {PADS_MODULO.map(([x, z], i) => (
+          <mesh key={i} position={[x, 0.1022, z]}>
+            <boxGeometry args={[0.007, 0.0008, 0.007]} />
+            <meshStandardMaterial color="#c9a24a" roughness={0.3} metalness={1} />
+          </mesh>
+        ))}
+        {/* Chip de radio + cristal del módulo */}
+        <mesh position={[0.075, 0.1036, 0.062]}>
+          <boxGeometry args={[0.016, 0.0035, 0.012]} />
+          <meshStandardMaterial color="#14161c" roughness={0.35} metalness={0.4} />
+        </mesh>
+        <mesh position={[0.092, 0.103, 0.06]}>
+          <boxGeometry args={[0.007, 0.0022, 0.005]} />
+          <meshStandardMaterial color="#c7ccd2" roughness={0.2} metalness={1} />
+        </mesh>
+
+        {/* Antena serpenteante de cobre: barras + puentes + alimentación */}
+        {BARRAS_ANTENA.map((x, i) => (
+          <mesh key={i} position={[x, 0.1022, 0.107]}>
+            <boxGeometry args={[0.0028, 0.0008, 0.014]} />
+            <meshStandardMaterial color="#c9a24a" roughness={0.3} metalness={1} />
+          </mesh>
+        ))}
+        {PUENTES_ANTENA.map(([x, z], i) => (
+          <mesh key={i} position={[x, 0.1022, z]}>
+            <boxGeometry args={[0.0102, 0.0008, 0.0026]} />
+            <meshStandardMaterial color="#c9a24a" roughness={0.3} metalness={1} />
+          </mesh>
+        ))}
+        {ALIMENTACION_ANTENA.map(([x, z, sx, sz], i) => (
+          <mesh key={i} position={[x, 0.1022, z]}>
+            <boxGeometry args={[sx, 0.0008, sz]} />
+            <meshStandardMaterial color="#c9a24a" roughness={0.3} metalness={1} />
+          </mesh>
+        ))}
+
+        {/* LED de estado: poste propio junto al JST, lejos de la celda */}
+        <mesh position={[-0.045, 0.104, 0.064]}>
+          <boxGeometry args={[0.014, 0.012, 0.014]} />
+          <meshStandardMaterial color="#17191e" roughness={0.45} metalness={0.3} />
+        </mesh>
+        <mesh position={[-0.045, 0.112, 0.064]}>
+          <boxGeometry args={[0.009, 0.004, 0.009]} />
+          <meshStandardMaterial
+            color="#05070b"
+            emissive={hex}
+            emissiveIntensity={4}
+            onBeforeCompile={aplicarOnda}
+            customProgramCacheKey={claveOnda}
+          />
+        </mesh>
+      </group>
     </Parte>
   )
 }

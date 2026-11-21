@@ -25,10 +25,12 @@ export const onda = {
   desde: { value: new Color('#00e5ff') },
   /** Color entrante. */
   hasta: { value: new Color('#00e5ff') },
+  /** Avance del barrido 0 → 1 (lo leen el giro del ratón y el suelo). */
+  progreso: { value: 1 },
 }
 
 /** Duración del barrido, en segundos. */
-const DURACION = 1.2
+const DURACION = 1.5
 /** El frente nace por delante de la nariz y muere por detrás de la cola. */
 const FRENTE_INICIO = NARIZ_Z + 0.35
 const FRENTE_FIN = COLA_Z - 0.35
@@ -40,6 +42,7 @@ export function lanzarOnda(desde: string, hasta: string): void {
   onda.hasta.value.set(hasta)
   onda.frente.value = FRENTE_INICIO
   onda.activo.value = 1
+  onda.progreso.value = 0
   progreso = 0
 }
 
@@ -47,6 +50,7 @@ export function lanzarOnda(desde: string, hasta: string): void {
 export function avanzarOnda(delta: number): void {
   if (onda.activo.value === 0) return
   progreso = Math.min(1, progreso + delta / DURACION)
+  onda.progreso.value = progreso
   onda.frente.value = FRENTE_INICIO + (FRENTE_FIN - FRENTE_INICIO) * escalonSuave(progreso)
   if (progreso >= 1) onda.activo.value = 0
 }

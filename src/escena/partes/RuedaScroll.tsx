@@ -1,31 +1,25 @@
 import { useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { RoundedBox } from '@react-three/drei'
-import { DoubleSide, MeshStandardMaterial, Vector2, type Group } from 'three'
+import { MeshStandardMaterial, Vector2, type Group } from 'three'
 import { sim } from '../../estado/sim'
-import { useUsoTienda, hexAcento } from '../../estado/usoTienda'
-import { Parte } from './Parte'
-import {
-  RUEDA_CENTRO_Y,
-  RUEDA_RADIO,
-  RUEDA_Z,
-  crearLlantaRueda,
-} from './geometriaRaton'
+import { useUsoTienda } from '../../estado/usoTienda'
+import { Parte, SoloDespiece } from './Parte'
+import { MM, RUEDA_ANCHO, RUEDA_RADIO } from './geometriaRaton'
 import { crearMapaNormal } from './texturas'
-import { parchearOnda } from '../sobrecarga'
+import { useModeloRaton } from './modeloRaton'
 
 /**
  * Capa 2: rueda de scroll + encoder.
  *
- * La rueda de verdad: dos mitades de goma con estrías fresadas y un aro de
- * luz RGB asomando entre ambas, sobre un eje transversal sujeto por dos
- * soportes. Gira sola despacio y acelera al descomponerse. Debajo, el
- * encoder óptico con su microswitch central.
+ * La rueda del Surge: Ø 20 mm de goma negra con 24 tacos cuadrados, cada uno
+ * partido por un surco central, sobre un buje de plástico. Gira sola despacio
+ * y acelera al descomponerse. El eje descansa en dos soportes: a la izquierda
+ * el encoder mecánico, a la derecha la horquilla del microswitch del clic.
  */
 export function RuedaScroll() {
-  const acento = useUsoTienda((s) => s.acento)
+  const modelo = useModeloRaton()
   const reducido = useUsoTienda((s) => s.reducido)
-  const hex = hexAcento(acento)
   const giro = useRef<Group>(null)
 
   useFrame((_, delta) => {
@@ -35,88 +29,53 @@ export function RuedaScroll() {
     }
   })
 
-  const piezas = useMemo(() => {
-    // Caucho: la misma familia de grano que el plástico, pero más cerrado y
-    // con más fuerza — la goma atrapa la luz de otra manera.
-    const caucho = crearMapaNormal({
-      repeticion: [16, 3],
-      fuerza: 3.4,
-      manchas: 0.35,
-      semilla: 5,
-    })
+  const materiales = useMemo(() => {
+    // Caucho: grano más cerrado y con más fuerza que el plástico.
+    const caucho = crearMapaNormal({ repeticion: 2.5, fuerza: 3.4, manchas: 0.35, semilla: 5 })
     return {
-      llanta: crearLlantaRueda(RUEDA_RADIO, 0.021),
       goma: new MeshStandardMaterial({
-        color: '#101216',
-        roughness: 0.78,
+        color: '#121417',
+        roughness: 0.8,
         metalness: 0,
         normalMap: caucho,
-        normalScale: new Vector2(0.55, 0.55),
-        side: DoubleSide,
+        normalScale: new Vector2(0.5, 0.5),
       }),
-      eje: new MeshStandardMaterial({
-        color: '#2a2f38',
-        roughness: 0.3,
-        metalness: 0.9,
-      }),
-      cuerpoEncoder: new MeshStandardMaterial({
-        color: '#101318',
-        roughness: 0.5,
-        metalness: 0.3,
-      }),
+      eje: new MeshStandardMaterial({ color: '#2a2f38', roughness: 0.3, metalness: 0.9 }),
+      cuerpo: new MeshStandardMaterial({ color: '#101318', roughness: 0.5, metalness: 0.3 }),
     }
   }, [])
 
-  // El aro de luz es lo único de la rueda que depende del acento (la llanta y
-  // el grano de la goma se construyen una única vez).
-  const materialAro = useMemo(
-    () =>
-      parchearOnda(
-        new MeshStandardMaterial({
-          color: '#05070b',
-          emissive: hex,
-          emissiveIntensity: 2.4,
-          roughness: 0.4,
-          metalness: 0,
-        }),
-      ),
-    [hex],
-  )
-
+  const centro = modelo.Rueda.posicion
+  const xSoporte = RUEDA_ANCHO / 2 + 2.2 * MM
   return (
     <Parte desplazamiento={[0, 1.32, 0.02]} retardo={0.1}>
-      {/* Conjunto giratorio: llantas + aro de luz + eje */}
-      <group ref={giro} position={[0, RUEDA_CENTRO_Y, RUEDA_Z]}>
-        <mesh geometry={piezas.llanta} material={piezas.goma} position={[-0.0165, 0, 0]} />
-        <mesh geometry={piezas.llanta} material={piezas.goma} position={[0.0165, 0, 0]} />
-        <mesh material={materialAro} rotation={[0, 0, Math.PI / 2]}>
-          <cylinderGeometry args={[RUEDA_RADIO - 0.004, RUEDA_RADIO - 0.004, 0.0125, 48]} />
-        </mesh>
-        <mesh material={piezas.eje} rotation={[0, 0, Math.PI / 2]}>
-          <cylinderGeometry args={[0.006, 0.006, 0.075, 20]} />
-        </mesh>
+      <group position={centro}>
+        <group ref={giro}>
+          <mesh geometry={modelo.Rueda.geometria} material={materiales.goma} />
+        </group>
+        <SoloDespiece>
+          {/* Eje pasante */}
+          <mesh material={materiales.eje} rotation={[0, 0, Math.PI / 2]}>
+            <cylinderGeometry args={[1.1 * MM, 1.1 * MM, 2 * xSoporte + 6 * MM, 16]} />
+          </mesh>
+          {/* Encoder mecánico (izquierda) */}
+          <RoundedBox
+            args={[4.5 * MM, 9 * MM, 10 * MM]}
+            radius={0.6 * MM}
+            smoothness={3}
+            position={[xSoporte + 1.6 * MM, -3.5 * MM, 0]}
+            material={materiales.cuerpo}
+          />
+          {/* Horquilla del clic central (derecha) */}
+          <mesh material={materiales.eje} position={[-xSoporte, -RUEDA_RADIO * 0.55, 0]}>
+            <boxGeometry args={[1.2 * MM, RUEDA_RADIO * 1.1, 5 * MM]} />
+          </mesh>
+          <mesh position={[-xSoporte - 1.5 * MM, -RUEDA_RADIO * 0.95, 1.5 * MM]}>
+            <boxGeometry args={[3 * MM, 2.4 * MM, 4 * MM]} />
+            <meshStandardMaterial color="#8f1f24" roughness={0.45} metalness={0.1} />
+          </mesh>
+        </SoloDespiece>
       </group>
-
-      {/* Soportes del eje, atornillados a la base de la rueda */}
-      <mesh material={piezas.eje} position={[-0.0335, 0.205, RUEDA_Z]}>
-        <boxGeometry args={[0.006, 0.055, 0.026]} />
-      </mesh>
-      <mesh material={piezas.eje} position={[0.0335, 0.205, RUEDA_Z]}>
-        <boxGeometry args={[0.006, 0.055, 0.026]} />
-      </mesh>
-
-      {/* Encoder óptico con el microswitch del clic central */}
-      <RoundedBox
-        args={[0.06, 0.045, 0.06]}
-        radius={0.006}
-        smoothness={3}
-        position={[0, 0.176, RUEDA_Z]}
-        material={piezas.cuerpoEncoder}
-      />
-      <mesh position={[0, 0.202, RUEDA_Z - 0.024]}>
-        <boxGeometry args={[0.014, 0.008, 0.008]} />
-        <meshStandardMaterial color="#8f1f24" roughness={0.45} metalness={0.1} />
-      </mesh>
     </Parte>
   )
 }

@@ -21,6 +21,8 @@ type Estado = {
   introCompleta: boolean
   /** El sistema pide movimiento reducido. */
   reducido: boolean
+  /** GPU lenta (o WebGL por software): menos resolución y sin bloom. */
+  ligero: boolean
   definirObjetivo: (valor: number) => void
   definirAcento: (acento: Acento) => void
   abrirHotspot: (id: string) => void
@@ -28,6 +30,7 @@ type Estado = {
   cerrarHotspot: () => void
   completarIntro: () => void
   definirReducido: (reducido: boolean) => void
+  activarLigero: () => void
 }
 
 export const useUsoTienda = create<Estado>((set) => ({
@@ -36,6 +39,7 @@ export const useUsoTienda = create<Estado>((set) => ({
   hotspotActivo: null,
   introCompleta: false,
   reducido: false,
+  ligero: false,
   definirObjetivo: (valor) => set({ objetivoExplosion: acotar(valor, 0, 1) }),
   definirAcento: (acento) => set({ acento }),
   abrirHotspot: (id) => set({ hotspotActivo: id }),
@@ -44,6 +48,7 @@ export const useUsoTienda = create<Estado>((set) => ({
   cerrarHotspot: () => set({ hotspotActivo: null }),
   completarIntro: () => set({ introCompleta: true }),
   definirReducido: (reducido) => set({ reducido }),
+  activarLigero: () => set({ ligero: true }),
 }))
 
 /** Hex del acento activo (atajo para escena y estilos). */

@@ -1,13 +1,17 @@
 import { Environment, Lightformer } from '@react-three/drei'
 import { hexAcento, useUsoTienda } from '../estado/usoTienda'
+import urlEstudio from './modelos/estudio.hdr?url'
 
 /**
- * Iluminación de estudio 100 % procedural: sin HDR externo.
+ * Iluminación de estudio.
  *
- * `Environment` con `Lightformer`s construye el mapa de entorno en tiempo
- * real (rect superior suave como luz principal, anillo cian y rect púrpura
- * como luces de contra) y los dos pointLight reactivos cambian con el
- * acento activo para teñir los metales.
+ * La base del mapa de entorno es un estudio fotográfico real: el HDRI
+ * `studio_small_09` de Poly Haven (CC0), el mismo de los renders de Cycles,
+ * reducido a 512 × 256 (400 kB: para un PMREM de 256 px no hace falta más).
+ * Sus softboxes dan al soft-touch y al piano black reflejos de producto de
+ * verdad. Encima, los `Lightformer`s añaden los acentos de neón de la marca
+ * (anillo cian y rect púrpura de contra) y los dos pointLight reactivos
+ * cambian con el acento activo para teñir los metales.
  */
 export function Iluminacion() {
   const acento = useUsoTienda((s) => s.acento)
@@ -26,10 +30,16 @@ export function Iluminacion() {
       <pointLight color={hex} intensity={16} distance={9} position={[-2.4, 1.6, -1.4]} />
       <pointLight color="#a855f7" intensity={10} distance={9} position={[2.4, 1.1, 1.8]} />
 
-      <Environment resolution={256} frames={1}>
+      <Environment
+        files={urlEstudio}
+        resolution={256}
+        frames={1}
+        environmentIntensity={0.6}
+        environmentRotation={[0, Math.PI * 0.6, 0]}
+      >
         <Lightformer
           form="rect"
-          intensity={3.4}
+          intensity={1.6}
           position={[0, 5, -1]}
           scale={[10, 5, 1]}
           target={[0, 0, 0]}

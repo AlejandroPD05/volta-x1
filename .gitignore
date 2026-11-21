@@ -5,3 +5,9 @@ dist
 .env
 .env.*
 !.env.example
+
+# Render fotorrealista (Blender): escena generada y texturas de Poly Haven
+modelado/polyhaven/
+modelado/*.blend
+modelado/*.blend1
+modelado/renders/

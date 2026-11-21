@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion'
 import { ESPECIFICACIONES } from '../datos/especificaciones'
+import { GaleriaEstudio } from './GaleriaEstudio'
 
 /**
  * Rejilla de especificaciones. Fondo casi opaco con blur: el ratón
@@ -40,6 +41,8 @@ export function SeccionSpecs() {
             </motion.article>
           ))}
         </div>
+
+        <GaleriaEstudio />
       </div>
     </section>
   )

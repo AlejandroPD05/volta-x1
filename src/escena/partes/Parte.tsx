@@ -11,6 +11,12 @@ type Props = {
   retardo?: number
   /** Giro extra (radianes) al final del recorrido, para dar vida al despiece. */
   giro?: [number, number, number]
+  /**
+   * Capa que vive entera dentro del casco: con el ratón montado no se ve,
+   * así que deja de dibujarse (en una iGPU las ~120 piezas internas costaban
+   * más de 4 ms por frame sin aportar un solo píxel).
+   */
+  interior?: boolean
   children: ReactNode
 }
 
@@ -28,7 +34,13 @@ type Props = {
  * y rugosidad: sin tocar el aspecto no se ahorraba nada, así que el despiece
  * se deja tal cual.)
  */
-export function Parte({ desplazamiento, retardo = 0, giro = [0, 0, 0], children }: Props) {
+export function Parte({
+  desplazamiento,
+  retardo = 0,
+  giro = [0, 0, 0],
+  interior = false,
+  children,
+}: Props) {
   const grupo = useRef<Group>(null)
   const progreso = useRef(0)
 
@@ -36,6 +48,9 @@ export function Parte({ desplazamiento, retardo = 0, giro = [0, 0, 0], children 
     const g = grupo.current
     if (!g) return
     const objetivo = escalonSuave(progresoPorRetardo(sim.explosion, retardo))
+    // Se oculta solo con todo montado (y ya compilada: este bucle no corre
+    // hasta que `precompilar` termina, así que sus shaders están listos).
+    if (interior) g.visible = sim.explosion > 0.0005 || progreso.current > 0
     // En reposo no se reescriben posición y rotación en cada fotograma.
     if (progreso.current === objetivo) return
     progreso.current = esponjar(progreso.current, objetivo, 9, delta)
@@ -45,5 +60,18 @@ export function Parte({ desplazamiento, retardo = 0, giro = [0, 0, 0], children 
     g.rotation.set(giro[0] * p, giro[1] * p, giro[2] * p)
   })
 
+  return <group ref={grupo}>{children}</group>
+}
+
+/**
+ * Piezas internas dentro de una capa que también tiene piezas exteriores
+ * (los switches junto a los botones laterales, el encoder junto a la
+ * rueda): solo se dibujan mientras el ratón está abierto.
+ */
+export function SoloDespiece({ children }: { children: ReactNode }) {
+  const grupo = useRef<Group>(null)
+  useFrame(() => {
+    if (grupo.current) grupo.current.visible = sim.explosion > 0.0005
+  })
   return <group ref={grupo}>{children}</group>
 }

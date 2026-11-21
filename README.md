@@ -2,7 +2,7 @@
 
 Landing page de producto para **VOLTA X1**, un ratón gaming inalámbrico de 45 g
 (ficticio, creado para portafolio). El ratón se renderiza en 3D en tiempo real
-con geometría procedural, gira libremente con el arrastre, se auto-rotaciona
+con un modelo generado en Blender a partir de cotas reales, gira libremente con el arrastre, se auto-rotaciona
 cuando se le deja en paz y **se descompone capa a capa** al hacer scroll o con
 los controles de la interfaz, con hotspots flotantes que abren fichas técnicas
 de cada pieza.
@@ -94,11 +94,52 @@ npm test        # vitest (unitarios)
 
 ## Notas
 
-- No se usan modelos GLTF: todo el ratón es geometría procedural. La carcasa se
-  genera con un *loft* paramétrico —planta y perfil barridos con splines
-  Catmull-Rom y secciones superelípticas— en
-  `src/escena/partes/geometriaRaton.ts`; el resto combina cajas redondeadas,
-  cilindros y formas extruidas. Todo se retoca por parámetros.
+- **Forma del ratón**: calcada del HyperX Pulsefire Surge (120 × 63 × 41 mm,
+  joroba a 69 mm de la nariz) a partir de cotas medidas sobre fotos de
+  referencia: silueta lateral, planta, secciones frontal y trasera, recorrido
+  de la tira RGB de 360°, cuencos y pliegue de los botones, pozo de la rueda
+  con botón DPI, dos botones laterales en el flanco izquierdo, patines y base.
+  La marca, el logotipo y las especificaciones siguen siendo de VOLTA.
+- **Pipeline 3D**: `modelado/surge.py` construye el modelo en Blender (loft en
+  milímetros → remallado por vóxeles → booleanas → diezmado → biseles de
+  0,25 mm en las aristas de molde → oclusión ambiental horneada con Cycles en
+  el color de vértice) y exporta `src/escena/modelos/raton.glb` (≈1,4 MB,
+  ≈42 k triángulos; sin materiales ni UV). Los materiales, el despiece y las piezas internas (PCB,
+  batería, switches, encoder) siguen en código. Para regenerarlo (Blender 4.5+):
+
+  ```bash
+  blender --background --factory-startup --python modelado/surge.py -- src/escena/modelos/raton.glb [carpeta_renders]
+  ```
+
+  Con `carpeta_renders` saca además vistas ortográficas para comparar con las
+  fotos. El GLB se carga con `GLTFLoader` sin Draco ni Meshopt: la CSP del
+  sitio no permite WebAssembly.
+- **Renders fotorrealistas** (copias WebP de 17–31 kB en `src/assets/estudio/`,
+  galería «En el estudio» al final de la ficha técnica; los PNG originales
+  quedan en `modelado/renders/`, fuera de git): `modelado/render.py` monta en
+  Cycles una escena de producto sobre el modelo denso: materiales PBR
+  procedurales (soft-touch con sheen y grano de molde, flancos granulados,
+  piano black en el pozo y el DPI, goma, PTFE), alfombrilla con la tela
+  `bi_stretch` y luz del HDRI `studio_small_09` (ambos de Poly Haven, CC0, en
+  `modelado/polyhaven/`, fuera de git: se descargan de polyhaven.com en 2k,
+  el HDR y los mapas `diff`, `rough` y `nor_gl` en JPG), softbox principal + recorte trasero,
+  cámara de 85–100 mm con profundidad de campo y AgX. Para regenerarlos:
+
+  ```bash
+  blender --background --factory-startup --python modelado/surge.py -- modelado/raton.blend
+  blender --background modelado/raton.blend --python modelado/render.py -- modelado/renders heroe lateral trasera rueda
+  ```
+
+- **Luz de la escena 3D**: el mismo HDRI `studio_small_09` (reducido a
+  512 × 256, 400 kB, en `src/escena/modelos/estudio.hdr`) es la base del mapa
+  de entorno; los `Lightformer`s de neón van encima.
+- **Rendimiento**: las capas internas no se dibujan con el ratón montado (153 → 21 llamadas de dibujo) y, si los fotogramas pasan de
+  30 ms (GPU muy justa o WebGL por software), la escena arranca ya, antes de
+  mostrarse, en
+  modo ligero: dpr 0,75 y sin bloom.
+- Al cambiar de color, la sobrecarga recorre los LEDs mientras el ratón da una
+  vuelta con un pequeño salto y una onda expansiva sale por el suelo (todo se
+  desactiva con movimiento reducido).
 - El bundle incluye three.js (~1.6 MB, ~465 kB gzip). Se puede dividir con
   `codeSplitting` si el proyecto creciera, pero para una sola página con
   canvas permanente se prioriza el arranque sin saltos.

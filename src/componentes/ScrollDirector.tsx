@@ -18,32 +18,45 @@ gsap.registerPlugin(ScrollTrigger)
  */
 export function ScrollDirector() {
   useEffect(() => {
-    const definir = (valor: number) => useUsoTienda.getState().definirObjetivo(valor)
+    // El objetivo se deduce SIEMPRE del progreso de ambos tramos, nunca de
+    // eventos sueltos: al cargar, las secciones aún no tienen su altura final
+    // (fuentes, Suspense del GLB) y al recalcular ScrollTrigger disparaba un
+    // `onLeaveBack` del tramo de color que dejaba el ratón despiezado en el
+    // héroe. Con el estado derivado, scroll 0 ⇒ ratón montado, pase lo que pase.
+    let tecnologia: ScrollTrigger | null = null
+    let color: ScrollTrigger | null = null
+    const actualizar = () => {
+      const pTecnologia = tecnologia?.progress ?? 0
+      const pColor = color?.progress ?? 0
+      const objetivo = pColor > 0 ? 1 - pColor : pTecnologia
+      useUsoTienda.getState().definirObjetivo(objetivo)
+    }
 
-    const tecnologia = ScrollTrigger.create({
+    tecnologia = ScrollTrigger.create({
       trigger: '#tecnologia',
       start: 'top 60%',
       end: 'bottom 100%',
-      onUpdate: (self) => definir(self.progress),
-      onLeave: () => definir(1),
-      onLeaveBack: () => definir(0),
+      onUpdate: actualizar,
+      onToggle: actualizar,
+      onRefresh: actualizar,
     })
 
-    const color = ScrollTrigger.create({
+    color = ScrollTrigger.create({
       trigger: '#color',
       start: 'top 85%',
       end: 'top 15%',
-      onUpdate: (self) => definir(1 - self.progress),
-      onLeave: () => definir(0),
-      onLeaveBack: () => definir(1),
+      onUpdate: actualizar,
+      onToggle: actualizar,
+      onRefresh: actualizar,
     })
+    actualizar()
 
     // Las fuentes cambian las alturas al cargar: recalcular posiciones.
     document.fonts.ready.then(() => ScrollTrigger.refresh())
 
     return () => {
-      tecnologia.kill()
-      color.kill()
+      tecnologia?.kill()
+      color?.kill()
     }
   }, [])
 

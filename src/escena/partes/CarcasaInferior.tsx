@@ -1,98 +1,135 @@
 import { useMemo } from 'react'
-import { ExtrudeGeometry, MeshStandardMaterial, Vector2 } from 'three'
-import { RoundedBox } from '@react-three/drei'
+import {
+  CanvasTexture,
+  ClampToEdgeWrapping,
+  MeshStandardMaterial,
+  SRGBColorSpace,
+  Vector2,
+  type Texture,
+} from 'three'
 import { useUsoTienda, hexAcento } from '../../estado/usoTienda'
 import { Parte } from './Parte'
-import {
-  crearTexturasRayado,
-  crearTexturaGrano,
-  crearTexturaRugosidad,
-} from './texturas'
-import { formaAnular, formaContorno } from './geometriaRaton'
+import { crearTexturasRayado, crearTexturaGrano, crearTexturaRugosidad } from './texturas'
+import { useModeloRaton } from './modeloRaton'
+import { MM, NARIZ_Z } from './geometriaRaton'
 import { parchearOnda } from '../sobrecarga'
+import { OndaSuelo } from './OndaSuelo'
 
 /**
- * Capa 6 (la más baja): la base.
+ * Etiqueta inferior: fondo negro con franja plateada, código de barras y
+ * renglones de texto impresos (sin letras reales: se ve desde cualquier
+ * lado sin quedar en espejo). Las UV del GLB son triplanares (1 u = 10 mm),
+ * así que la textura se encaja sobre la placa de 28 × 34 mm.
+ */
+function crearTexturaEtiqueta(): Texture {
+  const lienzo = document.createElement('canvas')
+  lienzo.width = 280
+  lienzo.height = 340
+  const ctx = lienzo.getContext('2d')
+  if (ctx) {
+    ctx.fillStyle = '#101216'
+    ctx.fillRect(0, 0, 280, 340)
+    ctx.fillStyle = '#9ea4ab'
+    ctx.fillRect(0, 0, 280, 46)
+    ctx.fillStyle = '#d9dde2'
+    for (let i = 0, x = 24; x < 250; i++) {
+      const ancho = 1 + ((i * 7) % 5)
+      ctx.fillRect(x, 70, ancho, 64)
+      x += ancho + 2 + ((i * 3) % 4)
+    }
+    ctx.fillStyle = '#7d848c'
+    for (let fila = 0; fila < 9; fila++) {
+      const largo = 120 + ((fila * 53) % 110)
+      ctx.fillRect(24, 156 + fila * 16, largo, 5)
+    }
+    ctx.strokeStyle = '#7d848c'
+    ctx.lineWidth = 3
+    for (let i = 0; i < 4; i++) ctx.strokeRect(30 + i * 58, 302, 34, 26)
+  }
+  const textura = new CanvasTexture(lienzo)
+  textura.colorSpace = SRGBColorSpace
+  textura.wrapS = ClampToEdgeWrapping
+  textura.wrapT = ClampToEdgeWrapping
+  // Placa: x ∈ [-14, 14] mm, z ∈ [52, 86] mm desde la nariz.
+  const u0 = -1.4
+  const v0 = (52 - 64.124) / 10
+  textura.repeat.set(1 / 2.8, 1 / 3.4)
+  textura.offset.set(-u0 / 2.8, -v0 / 3.4)
+  return textura
+}
+
+/**
+ * Capa 6 (la más baja): flancos y base.
  *
- * Extrusión del mismo contorno de planta que el casco (así el ensamblaje
- * cierra a ras de la línea de separación, sin muescas) con el borde inferior
- * biselado, la tira de luz RGB perimetral en la ranura entre base y casco
- * —la firma del Pulsefire Surge—, cuatro patines de PTFE, la lente sellada
- * del sensor, dos tornillos, el interruptor de encendido y la etiqueta con
- * código de barras. Esta capa no se desplaza: es el "suelo" del despiece.
+ * En el Surge la pieza inferior sube por los costados hasta la tira RGB —por
+ * eso los flancos tienen otro tacto, un plástico granulado sin goma— y
+ * remata la cola por debajo de la «lengua» de la cubierta. Aquí viven la
+ * tira perimetral que separa ambas carcasas (rehundida bajo el labio de los
+ * botones en la nariz), los rebajes de los botones laterales, el puerto
+ * USB-C, los dos patines grandes, la ventana del sensor y la etiqueta.
+ * Esta capa no se desplaza: es el "suelo" del despiece.
  */
 export function CarcasaInferior() {
+  const modelo = useModeloRaton()
   const acento = useUsoTienda((s) => s.acento)
   const hex = hexAcento(acento)
 
-  const piezas = useMemo(() => {
-    const grano = crearTexturaGrano()
+  const materiales = useMemo(() => {
+    const grano = crearTexturaGrano(160, 5, 0.55)
     const satinado = crearTexturaRugosidad({ semilla: 31 })
+    satinado.repeat.set(0.1, 0.1)
     const rayado = crearTexturasRayado()
-
-    const base = new ExtrudeGeometry(formaContorno(0.992), {
-      depth: 0.0715,
-      bevelEnabled: true,
-      bevelThickness: 0.0045,
-      bevelSize: 0.004,
-      // El bisel debe crecer hacia DENTRO (offset = -bevelSize). Con offset 0
-      // ExtrudeGeometry expande la silueta hacia fuera y la base asoma por la
-      // cola y por los flancos, por fuera del casco (el "triángulo" oscuro).
-      bevelOffset: -0.004,
-      bevelSegments: 3,
-      curveSegments: 24,
-    })
-    base.rotateX(Math.PI / 2)
-    base.translate(0, 0.1, 0)
-
-    const anillo = new ExtrudeGeometry(formaAnular(0.998), {
-      depth: 0.013,
-      bevelEnabled: false,
-      curveSegments: 24,
-    })
-    anillo.rotateX(Math.PI / 2)
-    anillo.translate(0, 0.107, 0)
+    rayado.rugosidad.repeat.set(0.6, 0.6)
+    rayado.normal.repeat.set(0.6, 0.6)
 
     return {
-      base,
-      anillo,
-      materialBase: new MeshStandardMaterial({
-        color: '#14171d',
+      // Flancos: plástico granulado, algo más claro y seco que la cubierta.
+      flancos: new MeshStandardMaterial({
+        color: '#0c0d10',
+        vertexColors: true,
         roughness: 0.78,
+        envMapIntensity: 0.45,
         metalness: 0,
         roughnessMap: satinado,
         bumpMap: grano,
-        bumpScale: 0.35,
+        bumpScale: 0.3,
       }),
-      // Patines de PTFE: blancos y sedosos, con el fresado y la rodadura
-      // marcados en el brillo (antes eran el plástico más "de mentira").
-      materialPtfe: new MeshStandardMaterial({
-        color: '#dfe5ea',
-        roughness: 0.45,
+      interior: new MeshStandardMaterial({
+        color: '#0b0c10',
+        vertexColors: true,
+        roughness: 0.9,
+        metalness: 0.05,
+      }),
+      // Patines de PTFE negro, con el fresado marcado en el brillo.
+      ptfe: new MeshStandardMaterial({
+        color: '#1d1f23',
+        vertexColors: true,
+        roughness: 0.38,
         metalness: 0.05,
         roughnessMap: rayado.rugosidad,
         normalMap: rayado.normal,
-        normalScale: new Vector2(0.35, 0.35),
+        normalScale: new Vector2(0.3, 0.3),
       }),
-      materialMetal: new MeshStandardMaterial({
-        color: '#9aa4b0',
-        roughness: 0.35,
-        metalness: 0.85,
+      etiqueta: new MeshStandardMaterial({
+        map: crearTexturaEtiqueta(),
+        vertexColors: true,
+        roughness: 0.55,
+        metalness: 0.1,
       }),
+      metal: new MeshStandardMaterial({ color: '#9aa4b0', roughness: 0.35, metalness: 0.85 }),
+      negro: new MeshStandardMaterial({ color: '#060709', roughness: 0.6, metalness: 0.2 }),
     }
   }, [])
 
-  // Solo los materiales teñidos por el acento dependen del color: recrearlos
-  // es barato y evita que cada cambio de color re-tesele la base o rehaga las
-  // texturas de grano (antes, todo el bloque de arriba se repetía).
+  // Solo la tira y la lente dependen del acento.
   const materialesAcento = useMemo(
     () => ({
-      anillo: parchearOnda(
+      tira: parchearOnda(
         new MeshStandardMaterial({
-          color: '#05070b',
+          color: '#0a0c10',
           emissive: hex,
-          emissiveIntensity: 2.8,
-          roughness: 0.45,
+          emissiveIntensity: 2.6,
+          roughness: 0.35,
         }),
       ),
       lente: parchearOnda(
@@ -108,87 +145,34 @@ export function CarcasaInferior() {
     [hex],
   )
 
+  // Puerto USB-C (hueco de 8,6 × 3 mm a 4,6 mm del suelo): fondo negro y
+  // lengüeta metálica asomando hacia la boca.
+  const yPuerto = 4.6 * MM
   return (
     <Parte desplazamiento={[0, -0.02, 0]} retardo={0}>
-      {/* Base + anillo RGB perimetral */}
-      <mesh geometry={piezas.base} material={piezas.materialBase} />
-      <mesh geometry={piezas.anillo} material={materialesAcento.anillo} />
+      <OndaSuelo />
+      <mesh geometry={modelo.CarcasaInferior.geometria} material={materiales.flancos} />
+      <mesh geometry={modelo.CarcasaInferiorInterior.geometria} material={materiales.interior} />
+      <mesh geometry={modelo.TiraRGB.geometria} material={materialesAcento.tira} />
+      <mesh geometry={modelo.PatinDelantero.geometria} material={materiales.ptfe} />
+      <mesh geometry={modelo.PatinTrasero.geometria} material={materiales.ptfe} />
+      <mesh geometry={modelo.Etiqueta.geometria} material={materiales.etiqueta} />
+      <mesh geometry={modelo.Lente.geometria} material={materialesAcento.lente} />
 
-      {/* Patines de PTFE: delantero, trasero y los dos laterales. Van
-          embutidos en el fondo de la base (apoyan dentro de ella) y asoman
-          solo ~0,8 mm, como unos patines reales: antes colgaban sueltos por
-          debajo y se veían como pestañas blancas. */}
-      <RoundedBox args={[0.38, 0.012, 0.1]} radius={0.005} smoothness={4} position={[0, 0.022, 0.46]} material={piezas.materialPtfe} />
-      <RoundedBox args={[0.38, 0.012, 0.1]} radius={0.005} smoothness={4} position={[0, 0.022, -0.42]} material={piezas.materialPtfe} />
-      <RoundedBox args={[0.1, 0.012, 0.18]} radius={0.005} smoothness={4} position={[0.19, 0.022, 0.02]} material={piezas.materialPtfe} />
-      <RoundedBox args={[0.1, 0.012, 0.18]} radius={0.005} smoothness={4} position={[-0.19, 0.022, 0.02]} material={piezas.materialPtfe} />
-
-      {/* Lente del sensor: aro oscuro embutido con la óptica al fondo */}
-      <mesh position={[0, 0.0262, 0.1]} material={piezas.materialBase}>
-        <cylinderGeometry args={[0.03, 0.03, 0.011, 32]} />
+      <mesh material={materiales.negro} position={[0, yPuerto, NARIZ_Z - 6.4 * MM]}>
+        <boxGeometry args={[8.4 * MM, 2.8 * MM, 1 * MM]} />
       </mesh>
-      <mesh position={[0, 0.0266, 0.1]} material={materialesAcento.lente}>
-        <cylinderGeometry args={[0.013, 0.013, 0.008, 24]} />
+      <mesh material={materiales.metal} position={[0, yPuerto, NARIZ_Z - 4.2 * MM]}>
+        <boxGeometry args={[6.4 * MM, 0.7 * MM, 4 * MM]} />
       </mesh>
 
-      {/* Tornillos: aro de embutido + cabeza con ranura en cruz. Todo queda
-          por encima del plano de los patines, como en una base real. */}
-      {[0.555, -0.5].map((z) => (
-        <group key={z} position={[0, 0, z]}>
-          <mesh position={[0, 0.0222, 0]} material={piezas.materialBase}>
-            <cylinderGeometry args={[0.011, 0.011, 0.012, 24]} />
-          </mesh>
-          <mesh position={[0, 0.0195, 0]} material={piezas.materialMetal}>
-            <cylinderGeometry args={[0.0085, 0.0085, 0.006, 24]} />
-          </mesh>
-          <mesh position={[0, 0.0164, 0]}>
-            <boxGeometry args={[0.016, 0.0012, 0.0032]} />
-            <meshStandardMaterial color="#3a4049" roughness={0.5} metalness={0.6} />
-          </mesh>
-          <mesh position={[0, 0.0163, 0]} rotation={[0, Math.PI / 2, 0]}>
-            <boxGeometry args={[0.016, 0.0012, 0.0032]} />
-            <meshStandardMaterial color="#3a4049" roughness={0.5} metalness={0.6} />
-          </mesh>
-        </group>
-      ))}
-
-      {/* Interruptor de encendido deslizante */}
-      <mesh position={[0, 0.0222, -0.335]} material={piezas.materialBase}>
-        <boxGeometry args={[0.05, 0.004, 0.028]} />
+      {/* Interruptor de encendido deslizante, entre el patín y el sensor */}
+      <mesh material={materiales.negro} position={[0, 0.0008, NARIZ_Z - 35.5 * MM]}>
+        <boxGeometry args={[9 * MM, 0.4 * MM, 5 * MM]} />
       </mesh>
-      <mesh position={[0, 0.0195, -0.328]} material={piezas.materialMetal}>
-        <boxGeometry args={[0.014, 0.006, 0.016]} />
+      <mesh material={materiales.metal} position={[1.8 * MM, -0.0012, NARIZ_Z - 35.5 * MM]}>
+        <boxGeometry args={[3.2 * MM, 0.6 * MM, 3 * MM]} />
       </mesh>
-      <mesh position={[0.012, 0.0237, -0.352]}>
-        <boxGeometry args={[0.006, 0.001, 0.002]} />
-        <meshStandardMaterial color="#6b7480" roughness={0.6} metalness={0.2} />
-      </mesh>
-
-      {/* Etiqueta con código de barras y líneas de texto impresas */}
-      <RoundedBox
-        args={[0.17, 0.0018, 0.11]}
-        radius={0.0007}
-        smoothness={3}
-        position={[-0.06, 0.0235, -0.15]}
-        material={piezas.materialPtfe}
-      />
-      {[-0.128, -0.121, -0.111, -0.104, -0.096, -0.086, -0.079, -0.071, -0.063].map(
-        (x, i) => (
-          <mesh key={x} position={[x, 0.0222, -0.15 - (i % 2) * 0.004]}>
-            <boxGeometry args={[i % 3 === 0 ? 0.0032 : 0.0016, 0.0012, 0.062]} />
-            <meshStandardMaterial color="#1a1d22" roughness={0.7} metalness={0} />
-          </mesh>
-        ),
-      )}
-      {[
-        [-0.02, -0.135, 0.07],
-        [-0.035, -0.169, 0.05],
-      ].map(([x, z, ancho]) => (
-        <mesh key={`${x}`} position={[x, 0.0222, z]}>
-          <boxGeometry args={[ancho, 0.0012, 0.006]} />
-          <meshStandardMaterial color="#565e68" roughness={0.7} metalness={0} />
-        </mesh>
-      ))}
     </Parte>
   )
 }

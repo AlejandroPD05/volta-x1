@@ -28,6 +28,9 @@ import { CarcasaSuperior } from './partes/CarcasaSuperior'
  * suave (seno) solo actúa cuando está montado, para que la vista
  * explosionada quede inmóvil y legible.
  */
+/** Giro de presentación en tres cuartos. */
+const GIRO_BASE = -0.5
+
 export function Raton() {
   const raiz = useRef<Group>(null)
   const reducido = useUsoTienda((s) => s.reducido)
@@ -50,6 +53,7 @@ export function Raton() {
     if (reducido) {
       if (quieto.current) return
       raiz.current.position.y = 0
+      raiz.current.rotation.set(0, GIRO_BASE, 0)
       raiz.current.updateWorldMatrix(true, false)
       onda.invRaton.value.copy(raiz.current.matrixWorld).invert()
       quieto.current = true
@@ -58,7 +62,15 @@ export function Raton() {
     quieto.current = false
 
     const t = estado.clock.elapsedTime
-    raiz.current.position.y = Math.sin(t * 0.9) * 0.014 * (1 - sim.explosion)
+    // Cambio de color: el ratón da una vuelta completa sobre sí mismo con un
+    // pequeño salto mientras la sobrecarga recorre los LEDs (`Onda`).
+    const p = onda.activo.value > 0 ? onda.progreso.value : 1
+    const vuelta = p < 1 ? (p < 0.5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2) : 0
+    const salto = Math.sin(Math.PI * p)
+    raiz.current.rotation.y = GIRO_BASE + vuelta * Math.PI * 2
+    raiz.current.rotation.z = salto * 0.06
+    raiz.current.position.y =
+      Math.sin(t * 0.9) * 0.014 * (1 - sim.explosion) + salto * 0.09 * (1 - sim.explosion)
     // La onda de acento se mide en coordenadas del ratón: mantén fresca la
     // inversa de su matriz para el shader de los materiales emisivos.
     raiz.current.updateWorldMatrix(true, false)
@@ -66,7 +78,7 @@ export function Raton() {
   })
 
   return (
-    <group ref={raiz} rotation={[0, -0.5, 0]}>
+    <group ref={raiz} rotation={[0, GIRO_BASE, 0]}>
       <CarcasaInferior />
       <Bateria />
       <Pcb />
