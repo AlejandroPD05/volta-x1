@@ -1,7 +1,8 @@
 import { ControlExplosion } from './ControlExplosion'
 
 /**
- * Sección larga (280 vh) que acompaña a la descomposición.
+ * Sección larga (380 vh) que acompaña a la descomposición: el ratón se abre
+ * en los primeros 240 vh y se queda abierto (y girable) una pantalla más.
  *
  * Composición asimétrica: el texto se queda a la izquierda y los controles
  * abajo a la derecha, dejando libre la banda central donde vive el ratón
@@ -10,7 +11,7 @@ import { ControlExplosion } from './ControlExplosion'
  */
 export function SeccionTecnologia() {
   return (
-    <section id="tecnologia" className="relative h-[280vh]">
+    <section id="tecnologia" className="relative h-[380vh]">
       <div className="pointer-events-none sticky top-0 h-[100svh]">
         <header className="tech__cabecera absolute left-5 right-5 top-24 max-w-sm text-left sm:left-12">
           <p className="etiqueta-seccion">02 · Ingeniería</p>
