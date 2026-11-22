@@ -17,7 +17,8 @@ de cada pieza.
 - **Héroe fotográfico**: giro de 360° renderizado en Cycles que se arrastra y
   se tiñe con el color elegido.
 - **Despiece fotográfico**: la explosión del ratón, con PCB, batería y
-  switches, renderizada en Cycles y reproducida con el scroll.
+  switches, renderizada en Cycles y reproducida con el scroll; abierto del
+  todo, se gira 360°.
 - **Rotación 360° libre** (arrastre y auto-rotación en reposo) con límites de
   inclinación para que nunca se vea "por debajo del suelo".
 - **Despiece de 6 capas** (`Carcasa superior → Interruptores → Rueda → PCB →
@@ -139,12 +140,17 @@ npm test        # vitest (unitarios)
   la posición en pantalla de cada hotspot por fotograma. `DespieceFoto.tsx`
   elige el fotograma con `sim.explosion` (scroll, deslizador y botones siguen
   igual), coloca los marcadores encima y oculta el ratón 3D mientras se ve.
+  Con el despiece al 100 % se puede girar 360° (arrastre, flechas o rotación
+  en reposo): `--giro 72` renderiza esa vuelta con la cámara del último
+  fotograma de la explosión, y al volver a montarlo regresa primero al frente.
   La pasada base sale con canal alfa y la alfombrilla se desvanece, así que la
   foto se funde con el fondo de la página:
 
   ```bash
   blender --background modelado/raton.blend --python modelado/despiece.py -- modelado/despiece/render
+  blender --background modelado/raton.blend --python modelado/despiece.py -- modelado/despiece/giro --giro 72
   # después: copiar modelado/despiece/render/{base,luz}/*.webp y hotspots.json a src/assets/despiece/
+  # y modelado/despiece/giro/{base,luz}/*.webp y hotspots.json a src/assets/despiece/giro/
   ```
 
 - **Renders fotorrealistas** (copias WebP de 17–31 kB en `src/assets/estudio/`,

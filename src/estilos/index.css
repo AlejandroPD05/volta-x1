@@ -107,6 +107,23 @@ body {
   opacity: 1;
 }
 
+/* Despiezado del todo se puede girar: el lienzo recupera el puntero (la capa
+   de interfaz lo deja pasar) y el dedo sigue haciendo scroll vertical. */
+.despiece-foto--girable .despiece-foto__lienzo {
+  pointer-events: auto;
+  cursor: grab;
+  touch-action: pan-y;
+}
+
+.despiece-foto--girable .despiece-foto__lienzo:active {
+  cursor: grabbing;
+}
+
+.despiece-foto__lienzo:focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 2px var(--acento);
+}
+
 .despiece-foto__lienzo {
   position: absolute;
   /* Posición y tamaño los fija DespieceFoto (mismos que los marcadores). */

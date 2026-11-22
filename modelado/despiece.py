@@ -21,6 +21,10 @@ escena de la web, así que se exportan desde ella a `modelado/despiece/web.glb`
      hotspot en cada fotograma, para colocar los marcadores sobre la foto.
 
 Con `--fotograma N` solo renderiza ese fotograma (prueba) en <carpeta>/prueba.
+
+Con `--giro 72` renderiza en cambio una vuelta de 360° del ratón despiezado
+del todo, con la cámara del último fotograma de la explosión (el fotograma 0
+del giro es el último de la explosión): la web deja girarlo al llegar al 100 %.
 """
 
 import json
@@ -40,6 +44,11 @@ ANCHO = int(_args[_args.index('--ancho') + 1]) if '--ancho' in _args else 1600
 MUESTRAS = int(_args[_args.index('--muestras') + 1]) if '--muestras' in _args else 64
 PASES = [p for p in ('base', 'luz') if '--' + p in _args] or ['base', 'luz']
 FOTOGRAMA = int(_args[_args.index('--fotograma') + 1]) if '--fotograma' in _args else None
+# --giro N: en vez de la explosión, una vuelta de 360° del ratón ya
+# despiezado (N fotogramas) vista desde el último plano de la explosión.
+GIRO = int(_args[_args.index('--giro') + 1]) if '--giro' in _args else 0
+if GIRO:
+    FRAMES = GIRO
 
 ESCALA_WEB = 1.164 / 120.0          # unidades de la web por mm (surge.py)
 U = 0.001 / ESCALA_WEB              # metros por unidad de la web
@@ -240,6 +249,9 @@ def animar(capas):
     cam.data.dof.aperture_fstop = 11
     cam.data.dof.focus_object = foco
     escena.camera = cam
+    if GIRO:
+        animar_giro(capas, cam, foco)
+        return
     for f in range(1, FRAMES + 1):
         e = (f - 1) / (FRAMES - 1)
         for clave, capa in capas.items():
@@ -257,6 +269,34 @@ def animar(capas):
         cam.keyframe_insert('location', frame=f)
         cam.keyframe_insert('rotation_euler', frame=f)
         foco.keyframe_insert('location', frame=f)
+
+
+def animar_giro(capas, cam, foco):
+    """Despiece completo y fijo; el ratón (vacío 'Raton') da una vuelta
+    lineal con la cámara y las luces quietas, como el giro del héroe."""
+    for clave, capa in capas.items():
+        _, desp, _, giro = CAPAS[clave]
+        capa.location = web_local(desp)
+        capa.rotation_euler = (giro[0], -giro[2], giro[1])
+    pos, mira = plano_camara(1.0)
+    cam.location = pos
+    cam.rotation_euler = (mira - pos).to_track_quat('-Z', 'Y').to_euler()
+    foco.location = mira
+    raton = bpy.data.objects['Raton']
+    raton.rotation_euler = (0, 0, 0)
+    raton.keyframe_insert('rotation_euler', index=2, frame=1)
+    raton.rotation_euler = (0, 0, -2 * math.pi)
+    raton.keyframe_insert('rotation_euler', index=2, frame=FRAMES + 1)
+    accion = raton.animation_data.action
+    curvas = list(getattr(accion, 'fcurves', []) or [])
+    if not curvas and hasattr(accion, 'layers'):
+        for capa in accion.layers:
+            for tira in capa.strips:
+                for bolsa in tira.channelbags:
+                    curvas.extend(bolsa.fcurves)
+    for curva in curvas:
+        for k in curva.keyframe_points:
+            k.interpolation = 'LINEAR'
 
 
 def hotspots(raton):

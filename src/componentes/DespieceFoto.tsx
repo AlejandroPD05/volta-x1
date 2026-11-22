@@ -1,39 +1,78 @@
 import { useEffect, useRef } from 'react'
-import datosHotspots from '../assets/despiece/hotspots.json'
+import datosDespiece from '../assets/despiece/hotspots.json'
+import datosGiro from '../assets/despiece/giro/hotspots.json'
 import { marcadores, ranuraMarcador, sim } from '../estado/sim'
 import { hexAcento, useUsoTienda } from '../estado/usoTienda'
 import { onda } from '../escena/sobrecarga'
-import { CompositorFoto, cargarFotograma, masCercano, ordenarUrls, type Fotograma } from './fotoCompuesta'
+import { esponjar } from '../utiles/mates'
+import {
+  CompositorFoto,
+  cargarFotograma,
+  masCercano,
+  ordenarUrls,
+  type Fotograma,
+} from './fotoCompuesta'
 
 /**
- * Despiece fotorrealista: la explosión del ratón renderizada en Cycles
- * (`modelado/despiece.py`, 60 fotogramas en dos pasadas) que se reproduce con
- * el scroll. El fotograma sale de `sim.explosion`, el mismo valor suavizado
- * que movía las capas 3D, así que el scroll, el deslizador y los botones de
- * Tecnología la mueven igual que antes.
+ * Despiece fotorrealista, renderizado en Cycles (`modelado/despiece.py`) en
+ * dos pasadas que se componen con el acento (`CompositorFoto`):
+ *
+ * - la explosión (60 fotogramas) se reproduce con el scroll: el fotograma sale
+ *   de `sim.explosion`, el mismo valor suavizado que movía las capas 3D, así
+ *   que el scroll, el deslizador y los botones de Tecnología la mueven igual;
+ * - con el ratón despiezado del todo, una vuelta de 360° (72 fotogramas, el
+ *   primero es el último de la explosión) se arrastra, se gira con las
+ *   flechas y rota sola en reposo. Al volver a montarlo, primero regresa al
+ *   frente y después se cierra.
  *
  * Mientras se ve, el ratón 3D se oculta y los marcadores de hotspot se
  * colocan con las posiciones proyectadas desde la cámara de Blender
  * (`hotspots.json`). Fuera de Tecnología y con el ratón montado, vuelve el
- * 3D en vivo (Specs, Iluminación, Compra).
+ * 3D en vivo (Iluminación, Compra).
  */
-const BASE = import.meta.glob<string>('../assets/despiece/base/*.webp', {
-  import: 'default',
-  query: '?url',
-  eager: true,
-})
-const LUZ = import.meta.glob<string>('../assets/despiece/luz/*.webp', {
-  import: 'default',
-  query: '?url',
-  eager: true,
-})
-const URLS_BASE = ordenarUrls(BASE)
-const URLS_LUZ = ordenarUrls(LUZ)
+// Vite exige las opciones de `import.meta.glob` escritas literalmente.
+const URLS_BASE = ordenarUrls(
+  import.meta.glob<string>('../assets/despiece/base/*.webp', {
+    import: 'default',
+    query: '?url',
+    eager: true,
+  }),
+)
+const URLS_LUZ = ordenarUrls(
+  import.meta.glob<string>('../assets/despiece/luz/*.webp', {
+    import: 'default',
+    query: '?url',
+    eager: true,
+  }),
+)
+const URLS_GIRO_BASE = ordenarUrls(
+  import.meta.glob<string>('../assets/despiece/giro/base/*.webp', {
+    import: 'default',
+    query: '?url',
+    eager: true,
+  }),
+)
+const URLS_GIRO_LUZ = ordenarUrls(
+  import.meta.glob<string>('../assets/despiece/giro/luz/*.webp', {
+    import: 'default',
+    query: '?url',
+    eager: true,
+  }),
+)
 const TOTAL = URLS_BASE.length
-const ASPECTO = datosHotspots.aspecto
-const POSICIONES = datosHotspots.hotspots as unknown as Record<string, [number, number][]>
+const TOTAL_GIRO = URLS_GIRO_BASE.length
+const ASPECTO = datosDespiece.aspecto
+type Posiciones = Record<string, [number, number][]>
+const POS_DESPIECE = datosDespiece.hotspots as unknown as Posiciones
+const POS_GIRO = datosGiro.hotspots as unknown as Posiciones
 /** Resolución de los renders: el lienzo no necesita más píxeles que estos. */
 const ANCHO_RENDER = 1600
+/** A partir de aquí el ratón se considera despiezado y se puede girar. */
+const DESPIEZADO = 0.985
+/** Píxeles de arrastre por fotograma del giro (5° por fotograma). */
+const PX_POR_FOTOGRAMA = 7
+/** Segundos por fotograma en la rotación automática (vuelta en ~14 s). */
+const PASO_AUTO = 0.2
 
 /** Orden de carga por bisección: montado, abierto, mitad, cuartos... */
 function ordenCarga(total: number): number[] {
@@ -51,6 +90,18 @@ function ordenCarga(total: number): number[] {
   for (let i = 0; i < total; i++) if (!visto.has(i)) orden.push(i)
   return orden
 }
+
+/** Orden de carga del giro: el frente y luego sus vecinos a cada lado. */
+function ordenGiro(total: number): number[] {
+  const orden = [0]
+  for (let d = 1; orden.length < total; d++) {
+    orden.push(d % total)
+    if (orden.length < total) orden.push((total - d) % total)
+  }
+  return orden
+}
+
+const modulo = (v: number, n: number) => ((v % n) + n) % n
 
 type Props = { enTecnologia: boolean }
 
@@ -95,22 +146,28 @@ export function DespieceFoto({ enTecnologia }: Props) {
     medir()
     window.addEventListener('resize', medir)
 
-    // Carga diferida: empieza cuando Tecnología se acerca.
+    // Carga diferida: empieza cuando Tecnología se acerca; el giro, después
+    // de la explosión.
     const fotogramas: Fotograma[] = new Array(TOTAL)
+    const giro: Fotograma[] = new Array(TOTAL_GIRO)
     const alCargar = () => {
       sucio = true
     }
+    const cola = [
+      ...ordenCarga(TOTAL).map((i) => () => {
+        fotogramas[i] = cargarFotograma(URLS_BASE[i], URLS_LUZ[i], alCargar)
+      }),
+      ...ordenGiro(TOTAL_GIRO).map((i) => () => {
+        giro[i] = cargarFotograma(URLS_GIRO_BASE[i], URLS_GIRO_LUZ[i], alCargar)
+      }),
+    ]
     let temporizador = 0
     const cargarTodo = () => {
       if (temporizador) return
-      const orden = ordenCarga(TOTAL)
       let siguiente = 0
       temporizador = window.setInterval(() => {
-        for (let n = 0; n < 4 && siguiente < TOTAL; n++, siguiente++) {
-          const i = orden[siguiente]
-          fotogramas[i] = cargarFotograma(URLS_BASE[i], URLS_LUZ[i], alCargar)
-        }
-        if (siguiente >= TOTAL) window.clearInterval(temporizador)
+        for (let n = 0; n < 4 && siguiente < cola.length; n++, siguiente++) cola[siguiente]()
+        if (siguiente >= cola.length) window.clearInterval(temporizador)
       }, 60)
     }
     const seccion = document.getElementById('tecnologia')
@@ -140,36 +197,116 @@ export function DespieceFoto({ enTecnologia }: Props) {
       sucio = true
     })
 
+    // Giro del ratón despiezado (en fotogramas del giro, continuo).
+    let angulo = 0
+    let girable = false
+    let arrastrando = false
+    let xInicio = 0
+    let anguloInicio = 0
+    let ultimoMovimiento = 0
+    const alPulsar = (e: PointerEvent) => {
+      if (!girable) return
+      arrastrando = true
+      xInicio = e.clientX
+      anguloInicio = angulo
+      ultimoMovimiento = performance.now()
+      canvas.setPointerCapture(e.pointerId)
+    }
+    const alMover = (e: PointerEvent) => {
+      if (!arrastrando) return
+      angulo = anguloInicio - (e.clientX - xInicio) / PX_POR_FOTOGRAMA
+      ultimoMovimiento = performance.now()
+    }
+    const alSoltar = (e: PointerEvent) => {
+      arrastrando = false
+      ultimoMovimiento = performance.now()
+      if (canvas.hasPointerCapture(e.pointerId)) canvas.releasePointerCapture(e.pointerId)
+    }
+    const alTecla = (e: KeyboardEvent) => {
+      if (!girable) return
+      if (e.key === 'ArrowLeft') angulo += 2
+      else if (e.key === 'ArrowRight') angulo -= 2
+      else return
+      e.preventDefault()
+      ultimoMovimiento = performance.now()
+    }
+    canvas.addEventListener('pointerdown', alPulsar)
+    canvas.addEventListener('pointermove', alMover)
+    canvas.addEventListener('pointerup', alSoltar)
+    canvas.addEventListener('pointercancel', alSoltar)
+    canvas.addEventListener('keydown', alTecla)
+
+    const colocarMarcadores = (
+      posiciones: Posiciones,
+      pos: number,
+      total: number,
+      ciclico: boolean,
+    ) => {
+      // Interpolados entre fotogramas para que sigan a las piezas sin saltos.
+      const i0 = Math.floor(pos)
+      const t = pos - i0
+      const a0 = ciclico ? modulo(i0, total) : i0
+      const a1 = ciclico ? modulo(i0 + 1, total) : Math.min(total - 1, i0 + 1)
+      for (const [id, lista] of Object.entries(posiciones)) {
+        const a = lista[a0]
+        const b = lista[a1]
+        const ranura = marcadores.get(id) ?? ranuraMarcador(id)
+        ranura.x = caja.x + (a[0] + (b[0] - a[0]) * t) * caja.ancho
+        ranura.y = caja.y + (a[1] + (b[1] - a[1]) * t) * caja.alto
+        ranura.z = 10
+      }
+    }
+
     let visible = false
-    let ultimo = -1
+    let ultimo: Fotograma | null = null
     let raf = 0
-    const bucle = () => {
+    let previo = performance.now()
+    const bucle = (ahora: number) => {
       raf = requestAnimationFrame(bucle)
+      const delta = Math.min(0.1, (ahora - previo) / 1000)
+      previo = ahora
       const e = Math.min(1, Math.max(0, sim.explosion))
       const pos = e * (TOTAL - 1)
-      const f = masCercano(fotogramas, Math.round(pos), false)
-      const quiere = (enTech.current || e > 0.01) && f !== null
+      const quiere =
+        (enTech.current || e > 0.01) && masCercano(fotogramas, Math.round(pos), false) !== null
       if (quiere !== visible) {
         visible = quiere
         div.classList.toggle('despiece-foto--visible', visible)
         sim.fotoDespiece = visible
         sucio = true
       }
-      if (!visible || !f) return
+      if (!visible) return
 
-      // Marcadores: posición proyectada en Blender, interpolada entre
-      // fotogramas para que sigan a las piezas sin saltos.
-      const i0 = Math.floor(pos)
-      const i1 = Math.min(TOTAL - 1, i0 + 1)
-      const t = pos - i0
-      for (const [id, lista] of Object.entries(POSICIONES)) {
-        const a = lista[i0]
-        const b = lista[i1]
-        const ranura = marcadores.get(id) ?? ranuraMarcador(id)
-        ranura.x = caja.x + (a[0] + (b[0] - a[0]) * t) * caja.ancho
-        ranura.y = caja.y + (a[1] + (b[1] - a[1]) * t) * caja.alto
-        ranura.z = 10
+      // ¿Despiezado del todo? Entonces se puede girar; si no, el giro vuelve
+      // al frente (por el camino corto) antes de seguir con la explosión.
+      const estado = useUsoTienda.getState()
+      const ahoraGirable = e >= DESPIEZADO && TOTAL_GIRO > 0
+      if (ahoraGirable !== girable) {
+        girable = ahoraGirable
+        div.classList.toggle('despiece-foto--girable', girable)
+        canvas.tabIndex = girable ? 0 : -1
+        if (!girable) arrastrando = false
       }
+      if (girable) {
+        const ocioso = !arrastrando && ahora - ultimoMovimiento > 2500
+        if (ocioso && !estado.reducido && !estado.hotspotActivo) angulo += delta / PASO_AUTO
+      } else if (angulo !== 0) {
+        const destino = Math.round(angulo / TOTAL_GIRO) * TOTAL_GIRO
+        angulo = esponjar(angulo, destino, 9, delta)
+        if (Math.abs(angulo - destino) < 0.05) angulo = 0
+      }
+
+      let f: Fotograma | null
+      const enGiro = angulo !== 0 || (girable && giro[0]?.listo)
+      if (enGiro) {
+        const indice = modulo(Math.round(angulo), TOTAL_GIRO)
+        f = masCercano(giro, indice, true) ?? masCercano(fotogramas, TOTAL - 1, false)
+        colocarMarcadores(POS_GIRO, modulo(angulo, TOTAL_GIRO), TOTAL_GIRO, true)
+      } else {
+        f = masCercano(fotogramas, Math.round(pos), false)
+        colocarMarcadores(POS_DESPIECE, pos, TOTAL, false)
+      }
+      if (!f) return
 
       let barrido = 1
       if (cambiando) {
@@ -180,10 +317,9 @@ export function DespieceFoto({ enTecnologia }: Props) {
           colorAntes = colorAhora
         }
       }
-      const indice = fotogramas.indexOf(f)
-      if (!sucio && indice === ultimo) return
+      if (!sucio && f === ultimo) return
       compositor.pintar(f.base, f.luz, colorAntes, colorAhora, barrido)
-      ultimo = indice
+      ultimo = f
       sucio = false
     }
     raf = requestAnimationFrame(bucle)
@@ -194,13 +330,24 @@ export function DespieceFoto({ enTecnologia }: Props) {
       window.removeEventListener('resize', medir)
       vigia.disconnect()
       quitarAcento()
+      canvas.removeEventListener('pointerdown', alPulsar)
+      canvas.removeEventListener('pointermove', alMover)
+      canvas.removeEventListener('pointerup', alSoltar)
+      canvas.removeEventListener('pointercancel', alSoltar)
+      canvas.removeEventListener('keydown', alTecla)
       sim.fotoDespiece = false
     }
   }, [])
 
   return (
-    <div ref={capa} className="despiece-foto" aria-hidden="true">
-      <canvas ref={lienzo} className="despiece-foto__lienzo" />
+    <div ref={capa} className="despiece-foto">
+      <canvas
+        ref={lienzo}
+        className="despiece-foto__lienzo"
+        role="img"
+        tabIndex={-1}
+        aria-label="VOLTA X1 despiezado: carcasa, botones, rueda, PCB, batería y base. Con el ratón abierto del todo, arrastra o usa las flechas para girarlo."
+      />
     </div>
   )
 }
