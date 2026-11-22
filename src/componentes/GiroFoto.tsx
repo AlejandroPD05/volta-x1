@@ -2,6 +2,14 @@ import { useEffect, useRef } from 'react'
 import { sim } from '../estado/sim'
 import { hexAcento, useUsoTienda } from '../estado/usoTienda'
 import { onda } from '../escena/sobrecarga'
+import {
+  CompositorFoto,
+  cargarFotograma,
+  facilEntradaSalida,
+  masCercano,
+  ordenarUrls,
+  type Fotograma,
+} from './fotoCompuesta'
 
 /**
  * Giro de 360° fotorrealista del héroe: 72 fotogramas renderizados en Cycles
@@ -25,44 +33,14 @@ const LUZ = import.meta.glob<string>('../assets/giro/luz/*.webp', {
   import: 'default',
   query: '?url',
 })
-const ordenar = (urls: Record<string, string>) =>
-  Object.keys(urls)
-    .sort()
-    .map((k) => urls[k])
-const URLS_BASE = ordenar(BASE)
-const URLS_LUZ = ordenar(LUZ)
+const URLS_BASE = ordenarUrls(BASE)
+const URLS_LUZ = ordenarUrls(LUZ)
 const TOTAL = URLS_BASE.length
 
 /** Píxeles de arrastre por fotograma (5° por fotograma). */
 const PX_POR_FOTOGRAMA = 7
 /** Segundos por fotograma en la rotación automática (vuelta en ~11 s). */
 const PASO_AUTO = 0.15
-
-type Fotograma = { base: HTMLImageElement; luz: HTMLImageElement; listo: boolean }
-
-function cargar(i: number, alCargar: () => void): Fotograma {
-  const base = new Image()
-  const luz = new Image()
-  const f: Fotograma = { base, luz, listo: false }
-  let pendientes = 2
-  const uno = () => {
-    pendientes -= 1
-    if (pendientes === 0) {
-      f.listo = true
-      alCargar()
-    }
-  }
-  base.decoding = 'async'
-  luz.decoding = 'async'
-  base.onload = uno
-  luz.onload = uno
-  base.src = URLS_BASE[i]
-  luz.src = URLS_LUZ[i]
-  return f
-}
-
-const facilEntradaSalida = (t: number) =>
-  t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2
 
 export function GiroFoto() {
   const lienzo = useRef<HTMLCanvasElement>(null)
@@ -75,28 +53,20 @@ export function GiroFoto() {
     const ctx = canvas.getContext('2d')
     if (!ctx) return
 
-    // Lienzos auxiliares para teñir la luz (multiplicar por el color).
-    const tinteA = document.createElement('canvas')
-    const tinteB = document.createElement('canvas')
-    const ctxA = tinteA.getContext('2d')!
-    const ctxB = tinteB.getContext('2d')!
+    const compositor = new CompositorFoto(ctx)
 
-    let ancho = 0
-    let alto = 0
+    let sucio = true
     const medir = () => {
       const r = contenedor.getBoundingClientRect()
       const dpr = Math.min(window.devicePixelRatio || 1, 2)
-      ancho = Math.max(1, Math.round(r.width * dpr))
-      alto = Math.max(1, Math.round(r.height * dpr))
-      for (const c of [canvas, tinteA, tinteB]) {
-        c.width = ancho
-        c.height = alto
-      }
+      compositor.dimensionar(
+        Math.max(1, Math.round(r.width * dpr)),
+        Math.max(1, Math.round(r.height * dpr)),
+      )
       sucio = true
     }
 
-    let sucio = true
-    const fotogramas: Fotograma[] = []
+    const fotogramas: Fotograma[] = new Array(TOTAL)
     const alCargar = () => {
       sucio = true
     }
@@ -111,74 +81,10 @@ export function GiroFoto() {
     const temporizador = window.setInterval(() => {
       for (let n = 0; n < 6 && siguiente < TOTAL; n++, siguiente++) {
         const i = orden[siguiente]
-        fotogramas[i] = cargar(i, alCargar)
+        fotogramas[i] = cargarFotograma(URLS_BASE[i], URLS_LUZ[i], alCargar)
       }
       if (siguiente >= TOTAL) window.clearInterval(temporizador)
     }, 50)
-
-    // Fotograma listo más cercano al pedido (mientras se descargan).
-    const elegir = (i: number): Fotograma | null => {
-      for (let d = 0; d < TOTAL; d++) {
-        for (const j of [i + d, i - d]) {
-          const f = fotogramas[((j % TOTAL) + TOTAL) % TOTAL]
-          if (f?.listo) return f
-        }
-      }
-      return null
-    }
-
-    const teñir = (c: CanvasRenderingContext2D, luz: HTMLImageElement, color: string) => {
-      c.globalCompositeOperation = 'source-over'
-      c.drawImage(luz, 0, 0, ancho, alto)
-      c.globalCompositeOperation = 'multiply'
-      c.fillStyle = color
-      c.fillRect(0, 0, ancho, alto)
-    }
-
-    const pintar = (f: Fotograma, colorAntes: string, colorAhora: string, barrido: number) => {
-      ctx.globalCompositeOperation = 'source-over'
-      ctx.drawImage(f.base, 0, 0, ancho, alto)
-      teñir(ctxB, f.luz, colorAhora)
-      if (barrido >= 1) {
-        ctx.globalCompositeOperation = 'lighter'
-        ctx.drawImage(tinteB, 0, 0)
-        return
-      }
-      // Barrido de izquierda a derecha: el color nuevo entra por un frente
-      // suave con una cresta blanca, como la sobrecarga del 3D.
-      teñir(ctxA, f.luz, colorAntes)
-      const frente = -0.15 + barrido * 1.3
-      const mascara = (c: CanvasRenderingContext2D, nuevo: boolean) => {
-        const g = c.createLinearGradient(0, 0, ancho, 0)
-        const a = Math.max(0, Math.min(1, frente - 0.08))
-        const b = Math.max(0, Math.min(1, frente + 0.08))
-        g.addColorStop(0, nuevo ? 'rgba(0,0,0,1)' : 'rgba(0,0,0,0)')
-        g.addColorStop(a, nuevo ? 'rgba(0,0,0,1)' : 'rgba(0,0,0,0)')
-        g.addColorStop(b, nuevo ? 'rgba(0,0,0,0)' : 'rgba(0,0,0,1)')
-        g.addColorStop(1, nuevo ? 'rgba(0,0,0,0)' : 'rgba(0,0,0,1)')
-        c.globalCompositeOperation = 'destination-in'
-        c.fillStyle = g
-        c.fillRect(0, 0, ancho, alto)
-      }
-      mascara(ctxA, false)
-      mascara(ctxB, true)
-      ctx.globalCompositeOperation = 'lighter'
-      ctx.drawImage(tinteA, 0, 0)
-      ctx.drawImage(tinteB, 0, 0)
-      // Cresta: la luz en blanco en una franja estrecha sobre el frente.
-      ctxA.globalCompositeOperation = 'source-over'
-      ctxA.clearRect(0, 0, ancho, alto)
-      ctxA.drawImage(f.luz, 0, 0, ancho, alto)
-      const g = ctxA.createLinearGradient(0, 0, ancho, 0)
-      const centro = Math.max(0, Math.min(1, frente))
-      g.addColorStop(Math.max(0, centro - 0.05), 'rgba(0,0,0,0)')
-      g.addColorStop(centro, 'rgba(0,0,0,0.9)')
-      g.addColorStop(Math.min(1, centro + 0.05), 'rgba(0,0,0,0)')
-      ctxA.globalCompositeOperation = 'destination-in'
-      ctxA.fillStyle = g
-      ctxA.fillRect(0, 0, ancho, alto)
-      ctx.drawImage(tinteA, 0, 0)
-    }
 
     // Estado del giro.
     let posicion = 0 // en fotogramas (continuo)
@@ -272,9 +178,9 @@ export function GiroFoto() {
         sucio = true
       }
       if (!sucio) return
-      const f = elegir(Math.round(posicion))
+      const f = masCercano(fotogramas, Math.round(posicion), true)
       if (!f) return
-      pintar(f, colorAntes, colorAhora, barrido)
+      compositor.pintar(f.base, f.luz, colorAntes, colorAhora, barrido)
       sucio = false
     }
     raf = requestAnimationFrame(bucle)

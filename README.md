@@ -16,6 +16,8 @@ de cada pieza.
 
 - **Héroe fotográfico**: giro de 360° renderizado en Cycles que se arrastra y
   se tiñe con el color elegido.
+- **Despiece fotográfico**: la explosión del ratón, con PCB, batería y
+  switches, renderizada en Cycles y reproducida con el scroll.
 - **Rotación 360° libre** (arrastre y auto-rotación en reposo) con límites de
   inclinación para que nunca se vea "por debajo del suelo".
 - **Despiece de 6 capas** (`Carcasa superior → Interruptores → Rueda → PCB →
@@ -119,11 +121,30 @@ npm test        # vitest (unitarios)
   luz de la tira en blanco). `GiroFoto.tsx` los suma en un `<canvas>` tiñendo
   la luz con el acento, gira al arrastrar (o con las flechas), rota solo en
   reposo y al cambiar de color da una vuelta con un barrido del tono nuevo. El
-  3D en vivo se oculta mientras el giro está a la vista y entra en Tecnología:
+  3D en vivo se oculta mientras el giro está a la vista:
 
   ```bash
   blender --background modelado/raton.blend --python modelado/giro.py -- modelado/giro
   # después: copiar modelado/giro/{base,luz}/*.webp a src/assets/giro/
+  ```
+
+- **Despiece fotográfico**: la explosión de Tecnología también es una
+  secuencia de Cycles (`modelado/despiece.py`, 60 fotogramas en las mismas dos
+  pasadas). Las piezas internas solo existen en la escena de la web, así que
+  se exportan desde ella a `modelado/despiece/web.glb` (las seis capas de
+  `Raton`, con el despiece a cero, con `GLTFExporter` y la opción
+  `onlyVisible: false`). El script las sustituye por las piezas densas de
+  `raton.blend` cuando coinciden, anima cada capa con los desplazamientos y
+  retardos de `Parte`, aleja la cámara orbitando y escribe `hotspots.json` con
+  la posición en pantalla de cada hotspot por fotograma. `DespieceFoto.tsx`
+  elige el fotograma con `sim.explosion` (scroll, deslizador y botones siguen
+  igual), coloca los marcadores encima y oculta el ratón 3D mientras se ve.
+  La pasada base sale con canal alfa y la alfombrilla se desvanece, así que la
+  foto se funde con el fondo de la página:
+
+  ```bash
+  blender --background modelado/raton.blend --python modelado/despiece.py -- modelado/despiece/render
+  # después: copiar modelado/despiece/render/{base,luz}/*.webp y hotspots.json a src/assets/despiece/
   ```
 
 - **Renders fotorrealistas** (copias WebP de 17–31 kB en `src/assets/estudio/`,

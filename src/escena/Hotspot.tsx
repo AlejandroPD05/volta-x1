@@ -2,7 +2,7 @@ import { useRef } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 import { Vector3, type Group } from 'three'
 import type { HotspotDato } from '../datos/especificaciones'
-import { marcadores, ranuraMarcador } from '../estado/sim'
+import { marcadores, ranuraMarcador, sim } from '../estado/sim'
 
 type Props = {
   dato: HotspotDato
@@ -33,7 +33,8 @@ export function Hotspot({ dato }: Props) {
 
   useFrame(() => {
     const g = ancla.current
-    if (!g) return
+    // Con el despiece fotográfico a la vista, la foto coloca los marcadores.
+    if (!g || sim.fotoDespiece) return
     g.updateWorldMatrix(true, false)
     mundo.current.setFromMatrixPosition(g.matrixWorld)
     const distancia = mundo.current.distanceTo(camara.position)

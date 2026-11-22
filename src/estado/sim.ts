@@ -13,6 +13,9 @@ export const sim = {
   intro: 0,
   /** El giro fotográfico del héroe está a la vista: el ratón 3D se oculta. */
   fotoHeroe: false,
+  /** El despiece fotográfico (Cycles) está a la vista: el ratón 3D se oculta
+   *  y los marcadores de hotspot los coloca la foto, no la escena. */
+  fotoDespiece: false,
 }
 
 /** Posición de pantalla de un marcador de hotspot (la escribe la escena). */

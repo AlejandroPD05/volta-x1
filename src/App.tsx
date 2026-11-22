@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { MotionConfig } from 'framer-motion'
 import { Cursor } from './componentes/Cursor'
+import { DespieceFoto } from './componentes/DespieceFoto'
 import { Hero } from './componentes/Hero'
 import { Nav } from './componentes/Nav'
 import { Pie } from './componentes/Pie'
@@ -94,6 +95,8 @@ export function App() {
         <div className="fondo-fijo" aria-hidden="true" />
         <div className="vineta" aria-hidden="true" />
         <div className="escena-fija">{webgl ? <Escena activa={activa} /> : <SinWebgl />}</div>
+        {/* El despiece se ve en fotos de Cycles; el 3D queda para el resto. */}
+        <DespieceFoto enTecnologia={enTecnologia} />
         {/* Los hotspots viven fuera de la capa 3D para poder quedar por encima
             del texto de la interfaz cuando su tarjeta se abre. */}
         <div className={`capa-hotspots${enTecnologia ? '' : ' capa-hotspots--oculta'}`}>

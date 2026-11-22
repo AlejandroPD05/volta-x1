@@ -92,6 +92,30 @@ body {
 /* Los puntos viven por debajo de la interfaz; al abrir una tarjeta la capa
    sube para que el texto no la tape. Así los marcadores no flotan sobre el
    panel de controles ni sobre los títulos. */
+/* Despiece fotográfico (renders de Cycles): encima del lienzo 3D y debajo
+   de los marcadores y de la interfaz. Aparece y desaparece con un fundido. */
+.despiece-foto {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.35s ease;
+}
+
+.despiece-foto--visible {
+  opacity: 1;
+}
+
+.despiece-foto__lienzo {
+  position: absolute;
+  /* Posición y tamaño los fija DespieceFoto (mismos que los marcadores). */
+  /* La base trae alfa y la alfombrilla ya se desvanece; la máscara solo
+     suaviza los bordes del encuadre con el ratón montado. */
+  -webkit-mask-image: radial-gradient(ellipse 50% 50% at 50% 50%, #000 60%, transparent 100%);
+  mask-image: radial-gradient(ellipse 50% 50% at 50% 50%, #000 60%, transparent 100%);
+}
+
 .capa-hotspots {
   position: fixed;
   inset: 0;
