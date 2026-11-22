@@ -40,8 +40,13 @@ export function App() {
       if (pie) {
         const arriba = pie.getBoundingClientRect().top
         setActiva(arriba >= window.innerHeight * 0.4)
-        // El escenario fijo se desvanece antes de que el pie lo corte.
-        document.documentElement.classList.toggle('con-pie', arriba < window.innerHeight)
+        // El escenario fijo se desvanece con el scroll en el último tercio de
+        // pantalla antes del pie (termina justo cuando el pie asoma), así el
+        // pie nunca lo corta. Va ligado al scroll y no a un temporizador:
+        // también es suave con movimiento reducido.
+        const vh = window.innerHeight
+        const opacidad = Math.min(1, Math.max(0, (arriba - vh) / (vh * 0.35)))
+        document.documentElement.style.setProperty('--escenario', opacidad.toFixed(3))
       }
       if (!tech) return
       const r = tech.getBoundingClientRect()

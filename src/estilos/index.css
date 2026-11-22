@@ -258,10 +258,10 @@ h3 {
   background: var(--color-paper);
 }
 
-/* El escenario fijo se desvanece antes de que el pie lo corte (App.tsx). */
-.con-pie .despiece-foto,
-.con-pie .capa-hotspots {
-  opacity: 0;
+/* El escenario fijo se desvanece con el scroll justo antes del pie
+   (`--escenario`, 1 → 0, lo calcula App.tsx). */
+.despiece-foto__lienzo {
+  opacity: var(--escenario, 1);
 }
 
 /* El escenario: fotos de Cycles, debajo de los marcadores y de la
