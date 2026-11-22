@@ -2,99 +2,72 @@
  * Composición de las fotos de Cycles renderizadas en dos pasadas
  * (`modelado/giro.py`, `modelado/despiece.py`):
  *
- *   imagen = base + luz × acento
+ *   imagen = base + luz × onda RGB
  *
- * `base` es el ratón con la luz de estudio y los LED apagados (puede traer
- * canal alfa); `luz`, solo la luz de los LED en blanco. Así el color se elige
- * en la web y se puede animar sin renderizar una tanda por color. Durante un
- * cambio de acento, un barrido de izquierda a derecha con una cresta blanca
- * lleva el color nuevo, como la sobrecarga del 3D.
+ * `base` es el ratón con la luz de estudio y los LED apagados (con canal
+ * alfa); `luz`, solo la luz de los LED en blanco. Aquí la luz se tiñe con un
+ * arcoíris que recorre la imagen de izquierda a derecha (la onda RGB de los
+ * ratones gaming) y se suma a la base. `fase` (0..1) desplaza la onda: el
+ * que llama la avanza con el tiempo, o la deja quieta con movimiento reducido.
  */
+
+/** Vueltas de color que caben a lo ancho del fotograma. */
+const VUELTAS = 1.15
+/** Paradas del degradado por vuelta (cada 60° de tono). */
+const PARADAS = 6
+
 export class CompositorFoto {
   private readonly ctx: CanvasRenderingContext2D
-  private readonly tinteA = document.createElement('canvas')
-  private readonly tinteB = document.createElement('canvas')
-  private readonly ctxA: CanvasRenderingContext2D
-  private readonly ctxB: CanvasRenderingContext2D
+  private readonly tinte = document.createElement('canvas')
+  private readonly ctxTinte: CanvasRenderingContext2D
 
   constructor(ctx: CanvasRenderingContext2D) {
     this.ctx = ctx
-    this.ctxA = this.tinteA.getContext('2d')!
-    this.ctxB = this.tinteB.getContext('2d')!
+    this.ctxTinte = this.tinte.getContext('2d')!
   }
 
-  /** Ajusta los lienzos auxiliares al tamaño (en píxeles) del lienzo final. */
+  /** Ajusta el lienzo auxiliar al tamaño (en píxeles) del lienzo final. */
   dimensionar(ancho: number, alto: number) {
-    for (const c of [this.ctx.canvas, this.tinteA, this.tinteB]) {
+    for (const c of [this.ctx.canvas, this.tinte]) {
       c.width = ancho
       c.height = alto
     }
   }
 
-  private teñir(c: CanvasRenderingContext2D, luz: CanvasImageSource, color: string) {
-    const { width, height } = c.canvas
-    c.globalCompositeOperation = 'source-over'
-    c.clearRect(0, 0, width, height)
-    c.drawImage(luz, 0, 0, width, height)
-    c.globalCompositeOperation = 'multiply'
-    c.fillStyle = color
-    c.fillRect(0, 0, width, height)
-  }
-
-  /** Pinta una foto. `barrido` 0..1 = avance del color nuevo (1 = terminado). */
-  pintar(
-    base: CanvasImageSource,
-    luz: CanvasImageSource,
-    colorAntes: string,
-    colorAhora: string,
-    barrido = 1,
-  ) {
-    const { ctx, ctxA, ctxB, tinteA, tinteB } = this
+  /** Pinta una foto con la onda RGB en la posición `fase` (0..1, cíclica). */
+  pintar(base: CanvasImageSource, luz: CanvasImageSource, fase: number) {
+    const { ctx, ctxTinte, tinte } = this
     const { width: ancho, height: alto } = ctx.canvas
     ctx.globalCompositeOperation = 'source-over'
     ctx.clearRect(0, 0, ancho, alto)
     ctx.drawImage(base, 0, 0, ancho, alto)
-    this.teñir(ctxB, luz, colorAhora)
-    if (barrido >= 1) {
-      ctx.globalCompositeOperation = 'lighter'
-      ctx.drawImage(tinteB, 0, 0)
-      return
+
+    // La luz en blanco, multiplicada por el arcoíris.
+    ctxTinte.globalCompositeOperation = 'source-over'
+    ctxTinte.clearRect(0, 0, ancho, alto)
+    ctxTinte.drawImage(luz, 0, 0, ancho, alto)
+    const g = ctxTinte.createLinearGradient(0, 0, ancho, 0)
+    const total = Math.ceil(VUELTAS * PARADAS) + 1
+    for (let i = 0; i <= total; i++) {
+      const t = i / total
+      const tono = (t * VUELTAS - fase) * 360
+      g.addColorStop(t, `hsl(${((tono % 360) + 360) % 360} 100% 55%)`)
     }
-    this.teñir(ctxA, luz, colorAntes)
-    const frente = -0.15 + barrido * 1.3
-    const mascara = (c: CanvasRenderingContext2D, nuevo: boolean) => {
-      const g = c.createLinearGradient(0, 0, ancho, 0)
-      const a = Math.max(0, Math.min(1, frente - 0.08))
-      const b = Math.max(0, Math.min(1, frente + 0.08))
-      const lleno = 'rgba(0,0,0,1)'
-      const vacio = 'rgba(0,0,0,0)'
-      g.addColorStop(0, nuevo ? lleno : vacio)
-      g.addColorStop(a, nuevo ? lleno : vacio)
-      g.addColorStop(b, nuevo ? vacio : lleno)
-      g.addColorStop(1, nuevo ? vacio : lleno)
-      c.globalCompositeOperation = 'destination-in'
-      c.fillStyle = g
-      c.fillRect(0, 0, ancho, alto)
-    }
-    mascara(ctxA, false)
-    mascara(ctxB, true)
+    ctxTinte.globalCompositeOperation = 'multiply'
+    ctxTinte.fillStyle = g
+    ctxTinte.fillRect(0, 0, ancho, alto)
+
     ctx.globalCompositeOperation = 'lighter'
-    ctx.drawImage(tinteA, 0, 0)
-    ctx.drawImage(tinteB, 0, 0)
-    // Cresta: la luz en blanco en una franja estrecha sobre el frente.
-    ctxA.globalCompositeOperation = 'source-over'
-    ctxA.clearRect(0, 0, ancho, alto)
-    ctxA.drawImage(luz, 0, 0, ancho, alto)
-    const g = ctxA.createLinearGradient(0, 0, ancho, 0)
-    const centro = Math.max(0, Math.min(1, frente))
-    g.addColorStop(Math.max(0, centro - 0.05), 'rgba(0,0,0,0)')
-    g.addColorStop(centro, 'rgba(0,0,0,0.9)')
-    g.addColorStop(Math.min(1, centro + 0.05), 'rgba(0,0,0,0)')
-    ctxA.globalCompositeOperation = 'destination-in'
-    ctxA.fillStyle = g
-    ctxA.fillRect(0, 0, ancho, alto)
-    ctx.drawImage(tinteA, 0, 0)
+    ctx.drawImage(tinte, 0, 0)
   }
+}
+
+/** Segundos que tarda la onda RGB en dar una vuelta completa. */
+export const PERIODO_ONDA = 6
+
+/** Fase de la onda para un instante (en ms), o quieta con movimiento reducido. */
+export function faseOnda(ahora: number, reducido: boolean): number {
+  return reducido ? 0 : (ahora / 1000 / PERIODO_ONDA) % 1
 }
 
 export type Fotograma = { base: HTMLImageElement; luz: HTMLImageElement; listo: boolean }
@@ -142,5 +115,3 @@ export function masCercano(fotogramas: (Fotograma | undefined)[], i: number, cic
   return null
 }
 
-export const facilEntradaSalida = (t: number) =>
-  t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2

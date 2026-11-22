@@ -14,32 +14,30 @@ de cada pieza.
 
 ## Qué incluye
 
-- **Héroe fotográfico**: giro de 360° renderizado en Cycles que se arrastra y
-  se tiñe con el color elegido.
-- **Despiece fotográfico**: la explosión del ratón, con PCB, batería y
-  switches, renderizada en Cycles y reproducida con el scroll; abierto del
-  todo, se gira 360°.
-- **Rotación 360° libre** (arrastre y auto-rotación en reposo) con límites de
-  inclinación para que nunca se vea "por debajo del suelo".
+- **Todo en fotos de Cycles**: la página ya no monta el ratón 3D en vivo. El
+  héroe es un giro de 360° renderizado en Cycles que se arrastra; en
+  Tecnología, la explosión con PCB, batería y switches se reproduce con el
+  scroll (y abierta del todo se gira 360°); en Iluminación y en la oferta, el
+  ratón montado gira con el mismo giro del héroe. El código 3D (`src/escena`)
+  sigue en el repositorio, sin usarse.
 - **Despiece de 6 capas** (`Carcasa superior → Interruptores → Rueda → PCB →
   Batería → Base`) controlado por scroll, por un **slider manual** o por los
   botones *Explosionar / Montar*. El ensamblaje se invierte al bajar a la
   siguiente sección.
 - **Hotspots**: marcadores cuadrados anclados a cada pieza del despiece que
   abren tarjetas con las cifras del componente.
-- **Selección de color** con tres acentos (Cyan Nova, Púrpura Plasma, Lima
-  Reactor) que tiñen los LED de las fotos y del 3D y el acento de la página.
+- **Luz RGB multicolor**: la pasada de luz de cada foto se tiñe con una onda de
+  arcoíris que recorre la tira (`CompositorFoto`, a 30 fps como mucho).
 - **Diseño**: rediseño con Hallmark sobre el tema Midnight (fondo azul noche,
   Mona Sans ancha a 300, superficies cuadradas por escalones de luz, una sola
-  señal de color). Díptico: el texto a la izquierda y el escenario fijo (fotos
-  de Cycles y ratón 3D) en la mitad derecha. Tokens en
-  `src/estilos/tokens.css`, base en `base.css` y la página en `index.css`,
-  cuyo sello Hallmark documenta las decisiones y lo que cambió de texto.
-- **Rendimiento y accesibilidad**: un único canvas de pantalla completa bajo la
-  capa DOM, valores continuos fuera de React (sin re-renders por frame), `dpr`
-  limitado, sin shadow maps, `prefers-reduced-motion` respetado (desactiva
-  intro, auto-rotación y partículas) y arrastre desactivado en táctil para no
-  secuestrar el scroll.
+  señal azur). Díptico: el texto a la izquierda y el escenario fijo de fotos
+  en la mitad derecha. Tokens en `src/estilos/tokens.css`, base en `base.css`
+  y la página en `index.css`, cuyo sello Hallmark documenta las decisiones y
+  lo que cambió de texto.
+- **Rendimiento y accesibilidad**: sin WebGL en la página (unos 185 kB de JS
+  comprimido), valores continuos fuera de React, fotogramas con carga
+  progresiva y `prefers-reduced-motion` respetado (para la onda RGB y los
+  giros automáticos).
 
 ## Stack
 

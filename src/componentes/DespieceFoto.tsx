@@ -2,21 +2,21 @@ import { useEffect, useRef } from 'react'
 import datosDespiece from '../assets/despiece/hotspots.json'
 import datosGiro from '../assets/despiece/giro/hotspots.json'
 import { marcadores, ranuraMarcador, sim } from '../estado/sim'
-import { hexAcento, useUsoTienda } from '../estado/usoTienda'
-import { onda } from '../escena/sobrecarga'
+import { useUsoTienda } from '../estado/usoTienda'
 import { esponjar } from '../utiles/mates'
 import { centroEscenario } from '../utiles/escenario'
 import {
   CompositorFoto,
   cargarFotograma,
+  faseOnda,
   masCercano,
   ordenarUrls,
   type Fotograma,
 } from './fotoCompuesta'
 
 /**
- * Despiece fotorrealista, renderizado en Cycles (`modelado/despiece.py`) en
- * dos pasadas que se componen con el acento (`CompositorFoto`):
+ * El escenario fijo de la página, todo en fotos de Cycles en dos pasadas que
+ * se componen con la onda RGB (`CompositorFoto`):
  *
  * - la explosión (60 fotogramas) se reproduce con el scroll: el fotograma sale
  *   de `sim.explosion`, el mismo valor suavizado que movía las capas 3D, así
@@ -26,10 +26,13 @@ import {
  *   flechas y rota sola en reposo. Al volver a montarlo, primero regresa al
  *   frente y después se cierra.
  *
- * Mientras se ve, el ratón 3D se oculta y los marcadores de hotspot se
- * colocan con las posiciones proyectadas desde la cámara de Blender
- * (`hotspots.json`). Fuera de Tecnología y con el ratón montado, vuelve el
- * 3D en vivo (Iluminación, Compra).
+ * - fuera de Tecnología y con el ratón montado (Iluminación, Compra), el
+ *   mismo giro del héroe (`modelado/giro.py`): su primer fotograma es el
+ *   primero de la explosión, así que pasa de uno a otro sin salto.
+ *
+ * Se ve en toda la página salvo en el héroe, que tiene su propio giro. Los
+ * marcadores de hotspot se colocan con las posiciones proyectadas desde la
+ * cámara de Blender (`hotspots.json`).
  */
 // Vite exige las opciones de `import.meta.glob` escritas literalmente.
 const URLS_BASE = ordenarUrls(
@@ -60,7 +63,22 @@ const URLS_GIRO_LUZ = ordenarUrls(
     eager: true,
   }),
 )
+const URLS_MONTADO_BASE = ordenarUrls(
+  import.meta.glob<string>('../assets/giro/base/*.webp', {
+    import: 'default',
+    query: '?url',
+    eager: true,
+  }),
+)
+const URLS_MONTADO_LUZ = ordenarUrls(
+  import.meta.glob<string>('../assets/giro/luz/*.webp', {
+    import: 'default',
+    query: '?url',
+    eager: true,
+  }),
+)
 const TOTAL = URLS_BASE.length
+const TOTAL_MONTADO = URLS_MONTADO_BASE.length
 const TOTAL_GIRO = URLS_GIRO_BASE.length
 const ASPECTO = datosDespiece.aspecto
 type Posiciones = Record<string, [number, number][]>
@@ -74,6 +92,8 @@ const DESPIEZADO = 0.985
 const PX_POR_FOTOGRAMA = 7
 /** Segundos por fotograma en la rotación automática (vuelta en ~14 s). */
 const PASO_AUTO = 0.2
+/** Por debajo de aquí el ratón está montado y gira como en el héroe. */
+const MONTADO = 0.005
 
 /** Orden de carga por bisección: montado, abierto, mitad, cuartos... */
 function ordenCarga(total: number): number[] {
@@ -151,6 +171,7 @@ export function DespieceFoto({ enTecnologia }: Props) {
     // de la explosión.
     const fotogramas: Fotograma[] = new Array(TOTAL)
     const giro: Fotograma[] = new Array(TOTAL_GIRO)
+    const montado: Fotograma[] = new Array(TOTAL_MONTADO)
     const alCargar = () => {
       sucio = true
     }
@@ -160,6 +181,10 @@ export function DespieceFoto({ enTecnologia }: Props) {
       }),
       ...ordenGiro(TOTAL_GIRO).map((i) => () => {
         giro[i] = cargarFotograma(URLS_GIRO_BASE[i], URLS_GIRO_LUZ[i], alCargar)
+      }),
+      // Los del héroe: casi siempre llegan ya de la caché.
+      ...ordenGiro(TOTAL_MONTADO).map((i) => () => {
+        montado[i] = cargarFotograma(URLS_MONTADO_BASE[i], URLS_MONTADO_LUZ[i], alCargar)
       }),
     ]
     let temporizador = 0
@@ -184,22 +209,10 @@ export function DespieceFoto({ enTecnologia }: Props) {
     if (seccion) vigia.observe(seccion)
     else cargarTodo()
 
-    // Color: mismo barrido que el giro del héroe, al ritmo de la sobrecarga.
-    let colorAntes = hexAcento(useUsoTienda.getState().acento)
-    let colorAhora = colorAntes
-    let cambiando = false
-    const quitarAcento = useUsoTienda.subscribe((s) => {
-      const nuevo = hexAcento(s.acento)
-      if (nuevo === colorAhora) return
-      colorAntes = colorAhora
-      colorAhora = nuevo
-      cambiando = !s.reducido
-      if (!cambiando) colorAntes = nuevo
-      sucio = true
-    })
-
-    // Giro del ratón despiezado (en fotogramas del giro, continuo).
+    // Giro del ratón despiezado (en fotogramas del giro, continuo) y giro del
+    // ratón montado fuera de Tecnología.
     let angulo = 0
+    let anguloMontado = 0
     let girable = false
     let arrastrando = false
     let xInicio = 0
@@ -262,14 +275,14 @@ export function DespieceFoto({ enTecnologia }: Props) {
     let ultimo: Fotograma | null = null
     let raf = 0
     let previo = performance.now()
+    let pintado = 0
     const bucle = (ahora: number) => {
       raf = requestAnimationFrame(bucle)
       const delta = Math.min(0.1, (ahora - previo) / 1000)
       previo = ahora
       const e = Math.min(1, Math.max(0, sim.explosion))
       const pos = e * (TOTAL - 1)
-      const quiere =
-        (enTech.current || e > 0.01) && masCercano(fotogramas, Math.round(pos), false) !== null
+      const quiere = !sim.fotoHeroe && masCercano(fotogramas, Math.round(pos), false) !== null
       if (quiere !== visible) {
         visible = quiere
         div.classList.toggle('despiece-foto--visible', visible)
@@ -297,9 +310,22 @@ export function DespieceFoto({ enTecnologia }: Props) {
         if (Math.abs(angulo - destino) < 0.05) angulo = 0
       }
 
+      // Montado y fuera de Tecnología, gira como en el héroe; al volver a
+      // Tecnología regresa al frente antes de que empiece la explosión.
+      if (e <= MONTADO && !enTech.current && !estado.reducido && TOTAL_MONTADO > 0) {
+        anguloMontado += delta / PASO_AUTO
+      } else if (anguloMontado !== 0) {
+        const destino = Math.round(anguloMontado / TOTAL_MONTADO) * TOTAL_MONTADO
+        anguloMontado = esponjar(anguloMontado, destino, 9, delta)
+        if (Math.abs(anguloMontado - destino) < 0.05) anguloMontado = 0
+      }
+
       let f: Fotograma | null
       const enGiro = angulo !== 0 || (girable && giro[0]?.listo)
-      if (enGiro) {
+      if (anguloMontado !== 0) {
+        const indice = modulo(Math.round(anguloMontado), TOTAL_MONTADO)
+        f = masCercano(montado, indice, true) ?? masCercano(fotogramas, 0, false)
+      } else if (enGiro) {
         const indice = modulo(Math.round(angulo), TOTAL_GIRO)
         f = masCercano(giro, indice, true) ?? masCercano(fotogramas, TOTAL - 1, false)
         colocarMarcadores(POS_GIRO, modulo(angulo, TOTAL_GIRO), TOTAL_GIRO, true)
@@ -309,18 +335,12 @@ export function DespieceFoto({ enTecnologia }: Props) {
       }
       if (!f) return
 
-      let barrido = 1
-      if (cambiando) {
-        barrido = onda.activo.value > 0 ? onda.progreso.value : 1
-        sucio = true
-        if (barrido >= 1) {
-          cambiando = false
-          colorAntes = colorAhora
-        }
-      }
+      // La onda RGB se mueve sola: se repinta a 30 fps como mucho.
+      if (!estado.reducido && ahora - pintado > 33) sucio = true
       if (!sucio && f === ultimo) return
-      compositor.pintar(f.base, f.luz, colorAntes, colorAhora, barrido)
+      compositor.pintar(f.base, f.luz, faseOnda(ahora, estado.reducido))
       ultimo = f
+      pintado = ahora
       sucio = false
     }
     raf = requestAnimationFrame(bucle)
@@ -330,7 +350,6 @@ export function DespieceFoto({ enTecnologia }: Props) {
       window.clearInterval(temporizador)
       window.removeEventListener('resize', medir)
       vigia.disconnect()
-      quitarAcento()
       canvas.removeEventListener('pointerdown', alPulsar)
       canvas.removeEventListener('pointermove', alMover)
       canvas.removeEventListener('pointerup', alSoltar)

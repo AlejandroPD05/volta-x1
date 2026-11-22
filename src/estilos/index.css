@@ -1,10 +1,12 @@
 /* Hallmark · shape: Split Studio (draw bb397d) · genre: atmospheric · theme: Midnight (deal 2/3, seed wireless-gaming-mouse-you-e3cc·b9762e7e·2026-11-22·r0) · redesign: full
+ * accent: Midnight azure; the LED light is a multicolour RGB wave drawn over the Cycles light pass
  * hero: Banner over the turntable, which fills the rest of the first screen · nav: floating bar, square, with the scroll meter · footer: colophon block · imagery: the product, Cycles renders (turntable, despiece, studio 4) · signature: the mouse rendered in Cycles, turned by hand and taken apart by the scroll
  * axes: dark/grotesk-sans/cool · posture: committed · contrast: pass · fold: pass · job: buy · v2.0.0 */
 /* Hallmark · pre-emit critique: P4 H4 E4 S5 R4 V4 · weakest: P, a product page argues little; the despiece is the argument, so the page is built around the fixed stage and every section leaves it the right half */
 /* Hallmark · reworded "Diseccionado hasta el último átomo" (02 · Ingeniería) to "Las seis capas" · 54 names the eyebrow, the head now says what the run shows */
 /* Hallmark · reworded "Números que se sienten" (03 · Ficha técnica) to "Seis cifras en 45 gramos" · 54 and the swap test */
-/* Hallmark · reworded "Tu luz. Tu firma." (04 · Iluminación) to "Cyan, púrpura o lima" · 54, the head names the three lights */
+/* Hallmark · reworded "Tu luz. Tu firma." (04 · Iluminación) to "16,8 millones de colores" · 54; the colour picker is gone at the owner's request, the light is a multicolour RGB wave */
+/* Hallmark · dropped onClick={() => definir(id)}, the accent picker (Cyan Nova, Púrpura Plasma, Lima Reactor) and the live 3D canvas (<Escena />, files kept) · the owner asked for multicolour RGB light and for the photographed model everywhere */
 /* Hallmark · reworded "En el estudio" to "Cuatro ángulos, luz de estudio" · the swap test */
 /* Hallmark · reworded the hero lede to "El ratón inalámbrico de 45 gramos que se desmonta ante tus ojos." · 58, one sentence of twelve words; "Arrástralo, gíralo" moved to the turntable caption */
 /* Hallmark · dropped "Nuevo · Edición Fundador" and "05 · Reserva" · 54 and 63; "Edición Fundador" stays in the offer */
@@ -13,7 +15,6 @@
 /* Hallmark · dropped <Cursor /> from App.tsx (file kept) · craft § 5 never a cursor follower, and it hid the grab cursor on both turntables */
 /* Hallmark · dismissed 28a · the first studio render sits five screens down, the LCP is the hero head and its turntable canvas */
 /* Hallmark · dismissed 49 · every .boton sets white-space: nowrap in this sheet, the label cannot wrap */
-/* Hallmark · waive 74 · the LED accents Púrpura Plasma #a855f7 and Lima Reactor #a3e635 found in src/estado/usoTienda.ts · they are the product's light colours, rendered into the Cycles frames and the 3D LEDs, not a page swatch */
 
 @import 'tailwindcss';
 @import './tokens.css';
@@ -23,13 +24,6 @@
 /*  Tokens del proyecto sobre Midnight                                 */
 /* ------------------------------------------------------------------ */
 :root {
-  /* El acento es el color de la luz del ratón: lo elige el visitante y lo
-     sincroniza App.tsx con la tienda (Cyan Nova, Púrpura Plasma, Lima
-     Reactor). Sustituye al azur de Midnight en todas sus funciones. */
-  --acento: #00e5ff;
-  --acento-suave: color-mix(in oklab, var(--acento) 14%, transparent);
-  --color-accent: var(--acento);
-  --color-focus: var(--acento);
   /* Medidas de la página que no son espaciado */
   --nav-alto: 64px;
   --marcador: 14px;
@@ -171,8 +165,7 @@ h3 {
 }
 
 .boton--primario {
-  /* El acento templado hacia la tinta: el botón no compite con el LED. */
-  background: color-mix(in oklch, var(--color-accent) 78%, var(--color-ink-2));
+  background: var(--color-accent);
   color: var(--color-accent-ink);
 }
 
@@ -254,14 +247,8 @@ h3 {
   cursor: not-allowed;
 }
 
-.muestra {
-  width: var(--space-md);
-  height: var(--space-md);
-  flex-shrink: 0;
-}
-
 /* ------------------------------------------------------------------ */
-/*  Capas fijas: fondo, escenario 3D, despiece fotográfico, marcadores */
+/*  Capas fijas: fondo, escenario (fotos de Cycles), marcadores        */
 /* ------------------------------------------------------------------ */
 .fondo-fijo {
   position: fixed;
@@ -271,27 +258,14 @@ h3 {
   background: var(--color-paper);
 }
 
-.escena-fija {
-  position: fixed;
-  inset: 0;
-  z-index: var(--z-base);
-  transition: opacity var(--dur-long) var(--ease-out);
-}
-
 /* El escenario fijo se desvanece antes de que el pie lo corte (App.tsx). */
-.con-pie .escena-fija,
 .con-pie .despiece-foto,
 .con-pie .capa-hotspots {
   opacity: 0;
 }
 
-/* Con el despiece fotográfico delante, el aviso del 3D no informa de nada. */
-body:has(.despiece-foto--visible) .aviso-carga {
-  visibility: hidden;
-}
-
-/* Despiece fotográfico (renders de Cycles): encima del lienzo 3D y debajo
-   de los marcadores y de la interfaz. Aparece y desaparece con un fundido. */
+/* El escenario: fotos de Cycles, debajo de los marcadores y de la
+   interfaz. Aparece y desaparece con un fundido (en el héroe manda su giro). */
 .despiece-foto {
   position: fixed;
   inset: 0;
@@ -346,36 +320,6 @@ body:has(.despiece-foto--visible) .aviso-carga {
 
 .capa-hotspots--oculta {
   visibility: hidden;
-}
-
-/* Aviso para navegadores sin WebGL (el despiece fotográfico sigue). */
-.sin-webgl {
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  height: 100%;
-  padding: var(--space-lg);
-}
-
-.sin-webgl__aviso {
-  max-width: 40ch;
-  padding: var(--space-lg);
-  background: var(--color-paper-2);
-  color: var(--color-muted);
-  font-size: var(--text-sm);
-}
-
-/* Aviso de carga mientras la GPU compila los shaders de la escena. */
-.aviso-carga {
-  position: absolute;
-  left: 50%;
-  bottom: var(--space-lg);
-  translate: -50% 0;
-  padding: var(--space-xs) var(--space-md);
-  background: var(--color-paper-2);
-  font-size: var(--text-sm);
-  color: var(--color-muted);
-  pointer-events: none;
 }
 
 .capa-ui {
@@ -1112,8 +1056,7 @@ input[type='range'].deslizador::-moz-range-thumb {
   .boton,
   .segmento,
   .nav__enlace,
-  .hotspot__punto,
-  .escena-fija {
+  .hotspot__punto {
     transition: none;
   }
 }

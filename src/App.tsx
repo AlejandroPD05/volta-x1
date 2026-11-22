@@ -9,46 +9,16 @@ import { SeccionColor } from './componentes/SeccionColor'
 import { SeccionCompra } from './componentes/SeccionCompra'
 import { SeccionSpecs } from './componentes/SeccionSpecs'
 import { SeccionTecnologia } from './componentes/SeccionTecnologia'
-import { Escena } from './escena/Escena'
 import { MarcadoresHotspot } from './escena/MarcadoresHotspot'
-import { ACENTOS, useUsoTienda } from './estado/usoTienda'
+import { useUsoTienda } from './estado/usoTienda'
 import { arrancarSimulador } from './escena/Simulador'
 
-/** Aviso mínimo cuando el navegador no puede crear un contexto WebGL. */
-function SinWebgl() {
-  return (
-    <div className="sin-webgl">
-      <p className="sin-webgl__aviso">
-        Tu navegador no puede dibujar la escena 3D (WebGL desactivado). Actívalo para
-        ver el VOLTA X1 despiezado en directo.
-      </p>
-    </div>
-  )
-}
-
 export function App() {
-  const acento = useUsoTienda((s) => s.acento)
   const [activa, setActiva] = useState(true)
   const [enTecnologia, setEnTecnologia] = useState(false)
-  const [webgl] = useState(() => {
-    try {
-      const lienzo = document.createElement('canvas')
-      return Boolean(lienzo.getContext('webgl2') ?? lienzo.getContext('webgl'))
-    } catch {
-      return false
-    }
-  })
 
-  // Suavizado del despiece: un único bucle, fuera del lienzo 3D.
+  // Suavizado del despiece: un único bucle para toda la página.
   useEffect(() => arrancarSimulador(), [])
-
-  // El acento se propaga a toda la interfaz vía variables CSS.
-  useEffect(() => {
-    const { hex, suave } = ACENTOS[acento]
-    const raiz = document.documentElement
-    raiz.style.setProperty('--acento', hex)
-    raiz.style.setProperty('--acento-suave', suave)
-  }, [acento])
 
   // Preferencia de movimiento reducido.
   useEffect(() => {
@@ -99,15 +69,13 @@ export function App() {
   return (
     <MotionConfig reducedMotion="user">
       <>
-        {/* Capas fijas: fondo, escenario 3D, despiece fotográfico, marcadores */}
+        {/* Capas fijas: fondo, escenario (fotos de Cycles) y marcadores */}
         <div className="fondo-fijo" aria-hidden="true" />
-        <div className="escena-fija">{webgl ? <Escena activa={activa} /> : <SinWebgl />}</div>
-        {/* El despiece se ve en fotos de Cycles; el 3D queda para el resto. */}
         <DespieceFoto enTecnologia={enTecnologia} />
-        {/* Los hotspots viven fuera de la capa 3D para poder quedar por encima
+        {/* Los hotspots viven en su propia capa para poder quedar por encima
             del texto de la interfaz cuando su tarjeta se abre. */}
         <div className={`capa-hotspots${enTecnologia ? '' : ' capa-hotspots--oculta'}`}>
-          <MarcadoresHotspot activa={activa && webgl && enTecnologia} />
+          <MarcadoresHotspot activa={activa && enTecnologia} />
         </div>
 
         <Nav />
