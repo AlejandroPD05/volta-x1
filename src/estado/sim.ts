@@ -11,6 +11,8 @@ export const sim = {
   explosion: 0,
   /** Progreso de la intro de entrada (0 = recién cargado, 1 = terminada). */
   intro: 0,
+  /** El giro fotográfico del héroe está a la vista: el ratón 3D se oculta. */
+  fotoHeroe: false,
 }
 
 /** Posición de pantalla de un marcador de hotspot (la escribe la escena). */

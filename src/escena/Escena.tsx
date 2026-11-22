@@ -1,10 +1,10 @@
 import { Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { AgXToneMapping } from 'three'
-import { ContactShadows, Sparkles } from '@react-three/drei'
+import { ContactShadows } from '@react-three/drei'
 import gsap from 'gsap'
 import { sim } from '../estado/sim'
-import { hexAcento, useUsoTienda } from '../estado/usoTienda'
+import { useUsoTienda } from '../estado/usoTienda'
 import { Camara } from './Camara'
 import { Efectos } from './Efectos'
 import { Iluminacion } from './Iluminacion'
@@ -139,11 +139,8 @@ function SombraContacto() {
 }
 
 export function Escena({ activa }: { activa: boolean }) {
-  const acento = useUsoTienda((s) => s.acento)
   const reducido = useUsoTienda((s) => s.reducido)
-  const introCompleta = useUsoTienda((s) => s.introCompleta)
   const ligero = useUsoTienda((s) => s.ligero)
-  const hex = hexAcento(acento)
   // `compilado`: shaders listos, el bucle puede encenderse.
   // `lista`: además han corrido unos frames, así que el postprocesado y la
   // sombra de contacto también están compilados y hay algo que enseñar.
@@ -203,19 +200,6 @@ export function Escena({ activa }: { activa: boolean }) {
           <Iluminacion />
           <Raton />
           <Onda />
-
-          {/* Chispas de neón durante la intro */}
-          {!introCompleta && (
-            <Sparkles
-              count={130}
-              scale={[5.5, 3.4, 5.5]}
-              size={2.6}
-              speed={0.55}
-              opacity={1}
-              color={hex}
-              position={[0, 0.4, 0]}
-            />
-          )}
 
           {/* Sombra de contacto suave (blob) en el suelo, sin shadow maps */}
           <SombraContacto />

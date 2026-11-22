@@ -14,8 +14,8 @@ de cada pieza.
 
 ## Qué incluye
 
-- **Héroe 3D** con entrada cinematográfica (zoom + partículas + neones), luz de
-  estudio, rim lights y sombras suaves de contacto.
+- **Héroe fotográfico**: giro de 360° renderizado en Cycles que se arrastra y
+  se tiñe con el color elegido.
 - **Rotación 360° libre** (arrastre y auto-rotación en reposo) con límites de
   inclinación para que nunca se vea "por debajo del suelo".
 - **Despiece de 6 capas** (`Carcasa superior → Interruptores → Rueda → PCB →
@@ -114,6 +114,18 @@ npm test        # vitest (unitarios)
   Con `carpeta_renders` saca además vistas ortográficas para comparar con las
   fotos. El GLB se carga con `GLTFLoader` sin Draco ni Meshopt: la CSP del
   sitio no permite WebAssembly.
+- **Héroe fotográfico**: el ratón del héroe es un giro de 360° renderizado en
+  Cycles (`modelado/giro.py`, 72 fotogramas en dos pasadas: estudio y solo la
+  luz de la tira en blanco). `GiroFoto.tsx` los suma en un `<canvas>` tiñendo
+  la luz con el acento, gira al arrastrar (o con las flechas), rota solo en
+  reposo y al cambiar de color da una vuelta con un barrido del tono nuevo. El
+  3D en vivo se oculta mientras el giro está a la vista y entra en Tecnología:
+
+  ```bash
+  blender --background modelado/raton.blend --python modelado/giro.py -- modelado/giro
+  # después: copiar modelado/giro/{base,luz}/*.webp a src/assets/giro/
+  ```
+
 - **Renders fotorrealistas** (copias WebP de 17–31 kB en `src/assets/estudio/`,
   galería «En el estudio» al final de la ficha técnica; los PNG originales
   quedan en `modelado/renders/`, fuera de git): `modelado/render.py` monta en

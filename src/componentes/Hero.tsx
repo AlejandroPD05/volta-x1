@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion'
 import { useUsoTienda } from '../estado/usoTienda'
+import { GiroFoto } from './GiroFoto'
 
 const CHIPS = ['45 g ultraligero', '8 000 Hz sin cables', '30 000 DPI', '90 h de batería']
 
@@ -14,8 +15,9 @@ const item = {
 }
 
 /**
- * Héroe: deja el centro libre para el ratón 3D (el lienzo es fijo y está
- * detrás). El texto entra escalonado después de que la cámara "aterrice".
+ * Héroe: en el centro, el ratón fotografiado en Cycles girando 360° (se
+ * arrastra). El 3D en vivo se oculta mientras este giro está a la vista y
+ * toma el relevo al bajar a Tecnología, donde se descompone.
  */
 export function Hero() {
   const reducido = useUsoTienda((s) => s.reducido)
@@ -33,7 +35,7 @@ export function Hero() {
         initial="hidden"
         animate="visible"
         variants={contenedor}
-        className="hero__intro flex flex-col items-center px-6 text-center"
+        className="hero__intro relative z-10 flex flex-col items-center px-6 text-center"
       >
         <motion.p
           variants={item}
@@ -58,13 +60,14 @@ export function Hero() {
         </motion.p>
       </motion.div>
 
-      {/* El centro queda limpio: ahí vive el modelo 3D */}
+      {/* Centro: giro fotográfico de Cycles (el 3D en vivo entra en Tecnología) */}
+      <GiroFoto />
 
       <motion.div
         initial="hidden"
         animate="visible"
         variants={contenedor}
-        className="hero__acciones flex flex-col items-center gap-5 px-6"
+        className="hero__acciones relative z-10 flex flex-col items-center gap-5 px-6"
       >
         <motion.ul variants={item} className="hero__chips flex flex-wrap justify-center gap-2">
           {CHIPS.map((chip) => (

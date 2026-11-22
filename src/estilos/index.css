@@ -502,6 +502,44 @@ html.cursor-propio * {
 }
 
 /* ------------------------------------------------------------------ */
+/*  Giro fotográfico del héroe (renders de Cycles)                     */
+/* ------------------------------------------------------------------ */
+.giro-foto {
+  position: absolute;
+  left: 50%;
+  top: 58%;
+  z-index: 0;
+  /* El ratón ocupa ~55 % del alto del fotograma: así cae entre el texto y
+     los botones del héroe. */
+  width: min(860px, 96vw, 112svh);
+  aspect-ratio: 16 / 9;
+  transform: translate(-50%, -50%);
+  /* El render trae su alfombrilla: se funde con el fondo de la página. */
+  -webkit-mask-image: radial-gradient(ellipse 46% 48% at 50% 52%, #000 52%, transparent 100%);
+  mask-image: radial-gradient(ellipse 46% 48% at 50% 52%, #000 52%, transparent 100%);
+}
+
+.giro-foto__lienzo {
+  display: block;
+  width: 100%;
+  height: 100%;
+  /* La capa de interfaz deja pasar el puntero a la escena 3D; el giro lo
+     recupera para poder arrastrarse. */
+  pointer-events: auto;
+  cursor: grab;
+  touch-action: pan-y;
+  outline: none;
+}
+
+.giro-foto__lienzo:active {
+  cursor: grabbing;
+}
+
+.giro-foto__lienzo:focus-visible {
+  box-shadow: inset 0 0 0 2px var(--acento);
+}
+
+/* ------------------------------------------------------------------ */
 /*  Ventanas muy bajas (móvil apaisado / paneles divididos)            */
 /* ------------------------------------------------------------------ */
 @media (max-height: 620px) {

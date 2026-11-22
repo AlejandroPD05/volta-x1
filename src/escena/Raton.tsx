@@ -47,6 +47,8 @@ export function Raton() {
 
   useFrame((estado) => {
     if (!raiz.current) return
+    // En el héroe manda el giro fotográfico (Cycles): el 3D no se dibuja.
+    raiz.current.visible = !sim.fotoHeroe
 
     // Con movimiento reducido el modelo no flota: solo se actualiza la matriz
     // una vez (o cuando se vuelve a activar el movimiento).
