@@ -1,110 +1,317 @@
+/* Hallmark · shape: Split Studio (draw bb397d) · genre: atmospheric · theme: Midnight (deal 2/3, seed wireless-gaming-mouse-you-e3cc·b9762e7e·2026-11-22·r0) · redesign: full
+ * hero: Banner over the turntable, which fills the rest of the first screen · nav: floating bar, square, with the scroll meter · footer: colophon block · imagery: the product, Cycles renders (turntable, despiece, studio 4) · signature: the mouse rendered in Cycles, turned by hand and taken apart by the scroll
+ * axes: dark/grotesk-sans/cool · posture: committed · contrast: pass · fold: pass · job: buy · v2.0.0 */
+/* Hallmark · pre-emit critique: P4 H4 E4 S5 R4 V4 · weakest: P, a product page argues little; the despiece is the argument, so the page is built around the fixed stage and every section leaves it the right half */
+/* Hallmark · reworded "Diseccionado hasta el último átomo" (02 · Ingeniería) to "Las seis capas" · 54 names the eyebrow, the head now says what the run shows */
+/* Hallmark · reworded "Números que se sienten" (03 · Ficha técnica) to "Seis cifras en 45 gramos" · 54 and the swap test */
+/* Hallmark · reworded "Tu luz. Tu firma." (04 · Iluminación) to "Cyan, púrpura o lima" · 54, the head names the three lights */
+/* Hallmark · reworded "En el estudio" to "Cuatro ángulos, luz de estudio" · the swap test */
+/* Hallmark · reworded the hero lede to "El ratón inalámbrico de 45 gramos que se desmonta ante tus ojos." · 58, one sentence of twelve words; "Arrástralo, gíralo" moved to the turntable caption */
+/* Hallmark · dropped "Nuevo · Edición Fundador" and "05 · Reserva" · 54 and 63; "Edición Fundador" stays in the offer */
+/* Hallmark · dropped the hero chips "45 g ultraligero", "8 000 Hz sin cables", "30 000 DPI", "90 h de batería" · 58, every figure stays in the spec rows */
+/* Hallmark · reworded dashes and middle dots to commas (Comprar, Pie, ventajas, especificaciones) · 19 and 63; "✓ Añadido (demo)" to "Es una demo: no hay carrito" · 70 */
+/* Hallmark · dropped <Cursor /> from App.tsx (file kept) · craft § 5 never a cursor follower, and it hid the grab cursor on both turntables */
+/* Hallmark · dismissed 28a · the first studio render sits five screens down, the LCP is the hero head and its turntable canvas */
+/* Hallmark · dismissed 49 · every .boton sets white-space: nowrap in this sheet, the label cannot wrap */
+/* Hallmark · waive 74 · the LED accents Púrpura Plasma #a855f7 and Lima Reactor #a3e635 found in src/estado/usoTienda.ts · they are the product's light colours, rendered into the Cycles frames and the 3D LEDs, not a page swatch */
+
 @import 'tailwindcss';
+@import './tokens.css';
+@import './base.css';
 
 /* ------------------------------------------------------------------ */
-/*  Tokens de diseño                                                   */
-/*  Tailwind v4 los convierte en utilidades: font-display, font-mono…  */
+/*  Tokens del proyecto sobre Midnight                                 */
 /* ------------------------------------------------------------------ */
-@theme {
-  --font-display: 'Orbitron', 'Segoe UI', sans-serif;
-  --font-sans: 'Space Grotesk', 'Segoe UI', sans-serif;
-  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+:root {
+  /* El acento es el color de la luz del ratón: lo elige el visitante y lo
+     sincroniza App.tsx con la tienda (Cyan Nova, Púrpura Plasma, Lima
+     Reactor). Sustituye al azur de Midnight en todas sus funciones. */
+  --acento: #00e5ff;
+  --acento-suave: color-mix(in oklab, var(--acento) 14%, transparent);
+  --color-accent: var(--acento);
+  --color-focus: var(--acento);
+  /* Medidas de la página que no son espaciado */
+  --nav-alto: 64px;
+  --marcador: 14px;
+  --ancho-tarjeta: 280px;
 }
 
-:root {
-  /* El acento lo sincroniza App.tsx con la tienda (Cyan / Púrpura / Lima). */
-  --acento: #00e5ff;
-  --acento-suave: rgba(0, 229, 255, 0.14);
-  --fondo: #05060a;
-  --panel: rgba(255, 255, 255, 0.045);
-  --borde: rgba(255, 255, 255, 0.09);
-  --texto: #e8ecf4;
-  --apagado: #8b93a7;
+@theme {
+  --font-display: 'Mona Sans Variable', 'Mona Sans', ui-sans-serif, system-ui, sans-serif;
+  --font-sans: 'Mona Sans Variable', 'Mona Sans', ui-sans-serif, system-ui, sans-serif;
 }
 
 html {
   scroll-behavior: smooth;
+  scroll-padding-top: var(--space-3xl);
 }
 
 body {
-  background: var(--fondo);
-  color: var(--texto);
-  font-family: var(--font-sans);
-  overflow-x: hidden;
-  -webkit-font-smoothing: antialiased;
-}
-
-::selection {
-  background: var(--acento);
-  color: #04060a;
+  font-stretch: 100%;
+  font-variant-numeric: tabular-nums;
 }
 
 ::-webkit-scrollbar {
   width: 10px;
 }
 ::-webkit-scrollbar-track {
-  background: #080a10;
+  background: var(--color-paper);
 }
 ::-webkit-scrollbar-thumb {
-  background: #232838;
-  border-radius: 8px;
+  background: var(--color-paper-3);
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #2f3650;
+  background: var(--color-rule-2);
 }
 
 /* ------------------------------------------------------------------ */
-/*  Capas fijas: fondo → escena 3D → interfaz                          */
+/*  Rejilla de la página                                               */
+/* ------------------------------------------------------------------ */
+.rejilla {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  column-gap: var(--gap-columns);
+}
+
+/* El texto vive a la izquierda; la mitad derecha es del escenario fijo
+   (las fotos de Cycles y el ratón 3D). */
+.lado-texto {
+  grid-column: 1 / span 5;
+  min-width: 0;
+}
+
+@media (max-width: 60rem) {
+  .lado-texto {
+    grid-column: 1 / -1;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/*  Tipografía                                                         */
+/* ------------------------------------------------------------------ */
+h1,
+h2 {
+  font-weight: var(--display-weight);
+  font-stretch: var(--display-stretch);
+  line-height: 1.04;
+  color: var(--color-ink);
+}
+
+h3 {
+  font-weight: 500;
+  font-stretch: 100%;
+  color: var(--color-ink);
+}
+
+.lead {
+  color: var(--color-ink-2);
+}
+
+.apagado {
+  color: var(--color-muted);
+}
+
+.etiqueta {
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--color-muted);
+}
+
+/* Cifras que son el dato: el corte ancho y ligero de los titulares. */
+.fig {
+  font-weight: var(--display-weight);
+  font-stretch: var(--display-stretch);
+  letter-spacing: -0.03em;
+  line-height: 0.9;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-ink);
+}
+
+.fig__unidad {
+  margin-inline-start: var(--space-xs);
+  font-size: var(--text-lg);
+  font-weight: 400;
+  font-stretch: 100%;
+  letter-spacing: 0;
+  color: var(--color-ink-2);
+}
+
+/* ------------------------------------------------------------------ */
+/*  Controles                                                          */
+/* ------------------------------------------------------------------ */
+.boton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  padding: var(--space-sm) var(--space-lg);
+  border: var(--rule-hair) solid transparent;
+  border-radius: var(--radius-pill);
+  background: none;
+  color: var(--color-ink);
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+  text-decoration: none;
+  transition:
+    background-color var(--dur-short) var(--ease-out),
+    border-color var(--dur-short) var(--ease-out),
+    color var(--dur-short) var(--ease-out);
+}
+
+.boton:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.boton:disabled,
+.boton[aria-disabled='true'] {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.boton--primario {
+  /* El acento templado hacia la tinta: el botón no compite con el LED. */
+  background: color-mix(in oklch, var(--color-accent) 78%, var(--color-ink-2));
+  color: var(--color-accent-ink);
+}
+
+.boton--primario:hover {
+  background: color-mix(in oklch, var(--color-accent) 64%, var(--color-ink));
+}
+
+.boton--primario:active {
+  background: color-mix(in oklch, var(--color-accent) 70%, var(--color-paper));
+}
+
+.boton--secundario {
+  border-color: var(--color-rule-2);
+}
+
+.boton--secundario:hover {
+  background: var(--color-paper-2);
+}
+
+.boton--secundario:active {
+  background: var(--color-paper-3);
+}
+
+.acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+}
+
+/* Elección segmentada: el mismo cuadrado, relleno de tinta al elegirla. */
+.segmentos {
+  display: flex;
+  flex-wrap: wrap;
+  border: var(--rule-hair) solid var(--color-rule-2);
+}
+
+.segmento {
+  display: inline-flex;
+  flex: 1 1 auto;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xs);
+  min-height: 48px;
+  padding: var(--space-sm) var(--space-md);
+  border: 0;
+  background: none;
+  color: var(--color-ink-2);
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    background-color var(--dur-micro) var(--ease-out),
+    color var(--dur-micro) var(--ease-out);
+}
+
+.segmento + .segmento {
+  border-inline-start: var(--rule-hair) solid var(--color-rule-2);
+}
+
+.segmento:hover {
+  background: var(--color-paper-2);
+}
+
+.segmento:active {
+  background: var(--color-paper-3);
+}
+
+.segmento:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: -2px;
+}
+
+.segmento[aria-pressed='true'] {
+  background: var(--color-ink);
+  color: var(--color-paper);
+}
+
+.segmento:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.muestra {
+  width: var(--space-md);
+  height: var(--space-md);
+  flex-shrink: 0;
+}
+
+/* ------------------------------------------------------------------ */
+/*  Capas fijas: fondo, escenario 3D, despiece fotográfico, marcadores */
 /* ------------------------------------------------------------------ */
 .fondo-fijo {
   position: fixed;
   inset: 0;
   z-index: 0;
   pointer-events: none;
-  background:
-    radial-gradient(
-      1100px 620px at 72% 16%,
-      color-mix(in oklab, var(--acento) 9%, transparent),
-      transparent 62%
-    ),
-    radial-gradient(900px 520px at 16% 80%, rgba(168, 85, 247, 0.09), transparent 62%),
-    var(--fondo);
-}
-
-/* Rejilla técnica con desvanecido radial */
-.fondo-fijo::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background-image:
-    linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
-  background-size: 46px 46px;
-  -webkit-mask-image: radial-gradient(ellipse 92% 72% at 50% 42%, #000 28%, transparent 78%);
-  mask-image: radial-gradient(ellipse 92% 72% at 50% 42%, #000 28%, transparent 78%);
+  background: var(--color-paper);
 }
 
 .escena-fija {
   position: fixed;
   inset: 0;
-  z-index: 1;
+  z-index: var(--z-base);
+  transition: opacity var(--dur-long) var(--ease-out);
 }
 
-/* Los puntos viven por debajo de la interfaz; al abrir una tarjeta la capa
-   sube para que el texto no la tape. Así los marcadores no flotan sobre el
-   panel de controles ni sobre los títulos. */
+/* El escenario fijo se desvanece antes de que el pie lo corte (App.tsx). */
+.con-pie .escena-fija,
+.con-pie .despiece-foto,
+.con-pie .capa-hotspots {
+  opacity: 0;
+}
+
+/* Con el despiece fotográfico delante, el aviso del 3D no informa de nada. */
+body:has(.despiece-foto--visible) .aviso-carga {
+  visibility: hidden;
+}
+
 /* Despiece fotográfico (renders de Cycles): encima del lienzo 3D y debajo
    de los marcadores y de la interfaz. Aparece y desaparece con un fundido. */
 .despiece-foto {
   position: fixed;
   inset: 0;
-  z-index: 1;
+  z-index: var(--z-base);
   pointer-events: none;
   opacity: 0;
-  transition: opacity 0.35s ease;
+  transition: opacity var(--dur-long) var(--ease-out);
 }
 
 .despiece-foto--visible {
   opacity: 1;
+}
+
+.despiece-foto__lienzo {
+  position: absolute;
+  /* Posición y tamaño los fija DespieceFoto (los mismos que los marcadores).
+     La base trae alfa y la alfombrilla ya se desvanece; la máscara solo
+     suaviza los bordes del encuadre con el ratón montado. */
+  -webkit-mask-image: radial-gradient(ellipse 50% 50% at 50% 50%, var(--color-ink) 60%, transparent 100%);
+  mask-image: radial-gradient(ellipse 50% 50% at 50% 50%, var(--color-ink) 60%, transparent 100%);
 }
 
 /* Despiezado del todo se puede girar: el lienzo recupera el puntero (la capa
@@ -120,95 +327,60 @@ body {
 }
 
 .despiece-foto__lienzo:focus-visible {
-  outline: none;
-  box-shadow: inset 0 0 0 2px var(--acento);
+  outline: 2px solid var(--color-focus);
+  outline-offset: -2px;
 }
 
-.despiece-foto__lienzo {
-  position: absolute;
-  /* Posición y tamaño los fija DespieceFoto (mismos que los marcadores). */
-  /* La base trae alfa y la alfombrilla ya se desvanece; la máscara solo
-     suaviza los bordes del encuadre con el ratón montado. */
-  -webkit-mask-image: radial-gradient(ellipse 50% 50% at 50% 50%, #000 60%, transparent 100%);
-  mask-image: radial-gradient(ellipse 50% 50% at 50% 50%, #000 60%, transparent 100%);
-}
-
+/* Los puntos viven por debajo de la interfaz; al abrir una tarjeta la capa
+   sube para que el texto no la tape. */
 .capa-hotspots {
   position: fixed;
   inset: 0;
-  z-index: 1;
+  z-index: var(--z-base);
   pointer-events: none;
 }
 
 .capa-hotspots:has(.tarjeta-hotspot) {
-  z-index: 20;
+  z-index: var(--z-dropdown);
 }
 
 .capa-hotspots--oculta {
   visibility: hidden;
 }
 
-/* Viñeta de la escena: antes era un pase de postprocesado a pantalla completa
-   en cada frame; como capa CSS el compositor la pinta gratis. Va detrás del
-   lienzo (z 0, después del fondo): el centro queda limpio y las esquinas
-   oscurecidas, y la interfaz (z 10) no se toca. */
-.vineta {
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  background: radial-gradient(
-    ellipse 130% 105% at 50% 50%,
-    transparent 46%,
-    rgba(0, 0, 0, 0.62) 100%
-  );
+/* Aviso para navegadores sin WebGL (el despiece fotográfico sigue). */
+.sin-webgl {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  height: 100%;
+  padding: var(--space-lg);
+}
+
+.sin-webgl__aviso {
+  max-width: 40ch;
+  padding: var(--space-lg);
+  background: var(--color-paper-2);
+  color: var(--color-muted);
+  font-size: var(--text-sm);
 }
 
 /* Aviso de carga mientras la GPU compila los shaders de la escena. */
 .aviso-carga {
   position: absolute;
   left: 50%;
-  bottom: 1.6rem;
-  transform: translateX(-50%);
-  display: flex;
-  align-items: center;
-  gap: 0.55rem;
-  padding: 0.5rem 0.95rem;
-  border-radius: 999px;
-  border: 1px solid var(--borde);
-  background: rgba(8, 10, 16, 0.78);
-  font-family: var(--font-mono);
-  font-size: 0.68rem;
-  letter-spacing: 0.24em;
-  text-transform: uppercase;
-  color: var(--apagado);
+  bottom: var(--space-lg);
+  translate: -50% 0;
+  padding: var(--space-xs) var(--space-md);
+  background: var(--color-paper-2);
+  font-size: var(--text-sm);
+  color: var(--color-muted);
   pointer-events: none;
-  animation: aviso-entra 0.4s ease both;
-}
-
-.aviso-carga__pulso {
-  width: 7px;
-  height: 7px;
-  border-radius: 999px;
-  background: var(--acento);
-  box-shadow: 0 0 12px 0 var(--acento);
-  animation: pulso 1.6s ease-out infinite;
-}
-
-@keyframes aviso-entra {
-  from {
-    opacity: 0;
-    transform: translateX(-50%) translateY(6px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(-50%) translateY(0);
-  }
 }
 
 .capa-ui {
   position: relative;
-  z-index: 10;
+  z-index: var(--z-raised);
   pointer-events: none;
 }
 
@@ -221,343 +393,156 @@ body {
   pointer-events: auto;
 }
 
-/* Utilidad global (la usan también los hotspots dentro del lienzo 3D). */
 .interactivo {
   pointer-events: auto;
 }
 
-.texto-apagado {
-  color: var(--apagado);
-}
-
-/* Tarjetas de especificaciones: elevación + borde en el acento al pasar */
-.tarjeta-spec {
-  transition:
-    border-color 0.25s ease,
-    transform 0.25s ease;
-}
-
-.tarjeta-spec:hover {
-  border-color: color-mix(in oklab, var(--acento) 45%, var(--borde));
-  transform: translateY(-3px);
-}
-
-/* Grano sutil sobre todo */
-.ruido {
+/* ------------------------------------------------------------------ */
+/*  Navegación: barra flotante cuadrada con el medidor de scroll       */
+/* ------------------------------------------------------------------ */
+.nav {
   position: fixed;
-  inset: 0;
-  z-index: 60;
-  pointer-events: none;
-  opacity: 0.045;
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='0.7'/></svg>");
+  inset-inline: 0;
+  top: 0;
+  z-index: var(--z-sticky-nav);
+  padding-top: var(--space-sm);
 }
 
-/* ------------------------------------------------------------------ */
-/*  Componentes de interfaz                                            */
-/* ------------------------------------------------------------------ */
-/* Paneles "cristal" SIN backdrop-filter: cada capa con desenfoque de fondo
-   obliga al compositor a releer el lienzo 3D entero en cada frame. El mismo
-   look se consigue con un fondo oscuro translúcido + borde claro. */
-.cristal {
-  background: rgba(10, 12, 19, 0.62);
-  border: 1px solid var(--borde);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
-}
-
-.texto-acento {
-  color: var(--acento);
-}
-
-.titulo-grande {
-  font-family: var(--font-display);
-  font-weight: 800;
-  letter-spacing: 0.01em;
-}
-
-.texto-glow {
-  text-shadow: 0 0 20px color-mix(in oklab, var(--acento) 60%, transparent);
-}
-
-.etiqueta-seccion {
-  font-family: var(--font-mono);
-  font-size: 0.72rem;
-  letter-spacing: 0.32em;
-  text-transform: uppercase;
-  color: var(--acento);
-}
-
-.boton-neon {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.8rem 1.6rem;
-  border-radius: 999px;
-  background: var(--acento);
-  color: #04060a;
-  font-weight: 700;
-  letter-spacing: 0.02em;
-  box-shadow: 0 0 22px -4px var(--acento);
-  transition:
-    transform 0.2s ease,
-    box-shadow 0.3s ease;
-}
-
-.boton-neon:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 0 36px -2px var(--acento);
-}
-
-.boton-neon:focus-visible,
-.boton-fantasma:focus-visible {
-  outline: 2px solid var(--acento);
-  outline-offset: 3px;
-}
-
-.boton-fantasma {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.8rem 1.6rem;
-  border-radius: 999px;
-  border: 1px solid var(--borde);
-  background: rgba(255, 255, 255, 0.03);
-  color: var(--texto);
-  transition:
-    border-color 0.25s ease,
-    color 0.25s ease,
-    transform 0.2s ease;
-}
-
-.boton-fantasma:hover {
-  border-color: var(--acento);
-  color: var(--acento);
-  transform: translateY(-2px);
-}
-
-/* Marquesina de especificaciones */
-@keyframes marquesina {
-  to {
-    transform: translateX(-50%);
-  }
-}
-
-.marquesina {
+.nav__barra {
   display: flex;
-  gap: 3rem;
-  width: max-content;
-  animation: marquesina 28s linear infinite;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-lg);
+  min-height: var(--nav-alto);
+  padding-inline: var(--space-lg);
+  background: var(--color-paper-2);
+  box-shadow: var(--shadow-card);
 }
 
-/* Deslizador de explosión */
-input[type='range'].deslizador {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 100%;
-  height: 4px;
-  border-radius: 999px;
-  background: linear-gradient(
-    90deg,
-    var(--acento) 0%,
-    var(--acento) var(--progreso, 0%),
-    rgba(255, 255, 255, 0.14) var(--progreso, 0%),
-    rgba(255, 255, 255, 0.14) 100%
-  );
-  outline: none;
+.nav__marca {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  color: var(--color-ink);
+  text-decoration: none;
 }
 
-input[type='range'].deslizador::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  width: 16px;
-  height: 16px;
-  border: none;
-  border-radius: 999px;
-  background: var(--acento);
-  box-shadow: 0 0 14px 0 var(--acento);
-  cursor: pointer;
+.nav__marca:focus-visible,
+.nav__enlace:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
 }
 
-input[type='range'].deslizador::-moz-range-thumb {
-  width: 16px;
-  height: 16px;
-  border: none;
-  border-radius: 999px;
-  background: var(--acento);
-  box-shadow: 0 0 14px 0 var(--acento);
-  cursor: pointer;
+/* Marca: el corte ancho de los titulares, como un rótulo. */
+.nav__palabra {
+  font-weight: 500;
+  font-stretch: var(--display-stretch);
+  font-size: var(--text-md);
 }
 
-/* ------------------------------------------------------------------ */
-/*  Hotspots 3D (tarjetas HTML ancladas a la escena)                   */
-/* ------------------------------------------------------------------ */
-.hotspot {
-  position: relative;
+.nav__enlaces {
+  display: none;
+  gap: var(--space-xl);
 }
 
-.hotspot__punto {
-  position: absolute;
-  left: 0;
-  top: 0;
-  transform: translate(-50%, -50%);
-  width: 22px;
-  height: 22px;
-  border-radius: 999px;
-  border: 1px solid var(--acento);
-  background: color-mix(in oklab, var(--acento) 25%, #05060a);
-  box-shadow: 0 0 16px 0 var(--acento);
-  cursor: pointer;
-  transition: background-color 0.25s ease, transform 0.2s ease;
-}
-
-.hotspot__punto:hover {
-  transform: translate(-50%, -50%) scale(1.18);
-}
-
-/* El pulso solo corre cuando el marcador está visible. Antes los seis puntos
-   mantenían su animación infinita incluso con el contenedor a opacidad 0. */
-.hotspot__punto::after {
-  content: '';
-  position: absolute;
-  inset: -9px;
-  border-radius: 999px;
-  border: 1px solid color-mix(in oklab, var(--acento) 45%, transparent);
-  opacity: 0;
-}
-
-.hotspot[data-visible] .hotspot__punto::after {
-  animation: pulso 2.4s ease-out infinite;
-}
-
-@keyframes pulso {
-  0% {
-    transform: scale(0.6);
-    opacity: 1;
-  }
-  100% {
-    transform: scale(1.7);
-    opacity: 0;
+@media (min-width: 60rem) {
+  .nav__enlaces {
+    display: flex;
   }
 }
 
-.hotspot__punto[aria-expanded='true'] {
-  background: var(--acento);
-}
-
-/* El centrado horizontal lo aplica Framer Motion con translateX(-50%):
-   si lo pusiéramos aquí, su animación (inline transform) lo pisaría. */
-.tarjeta-hotspot {
-  position: absolute;
-  /* La capa de marcadores ajusta esta variable para que la tarjeta no se
-     salga por los lados en móvil; en escritorio vale 0. */
-  left: var(--ajuste-x, 0px);
-  width: min(268px, 78vw);
-  padding: 1rem 1.1rem;
-  border-radius: 16px;
-  background: rgba(8, 10, 16, 0.96);
-  border: 1px solid color-mix(in oklab, var(--acento) 42%, var(--borde));
-  box-shadow:
-    0 18px 50px -20px rgba(0, 0, 0, 0.9),
-    0 0 32px -14px var(--acento);
-}
-
-.tarjeta-hotspot--arriba {
-  bottom: 26px;
-}
-
-.tarjeta-hotspot--abajo {
-  top: 26px;
-}
-
-/* Línea conectora entre el punto y la tarjeta. Si la tarjeta se ha desplazado
-   para caber en móvil, la línea se mueve con ella para no perder el anclaje. */
-.tarjeta-hotspot::after {
-  content: '';
-  position: absolute;
-  left: calc(50% - var(--ajuste-x, 0px));
-  width: 1px;
-  height: 26px;
-}
-
-.tarjeta-hotspot--arriba::after {
-  top: 100%;
-  background: linear-gradient(var(--acento), transparent);
-}
-
-.tarjeta-hotspot--abajo::after {
-  bottom: 100%;
-  background: linear-gradient(transparent, var(--acento));
-}
-
-/* ------------------------------------------------------------------ */
-/*  Cursor personalizado (solo punteros finos)                         */
-/* ------------------------------------------------------------------ */
-html.cursor-propio,
-html.cursor-propio * {
-  cursor: none !important;
-}
-
-.cursor-punto,
-.cursor-anillo {
-  position: fixed;
-  left: 0;
-  top: 0;
-  z-index: 90;
-  pointer-events: none;
-  border-radius: 999px;
-  mix-blend-mode: difference;
-}
-
-.cursor-punto {
-  width: 6px;
-  height: 6px;
-  background: var(--acento);
-}
-
-.cursor-anillo {
-  --escala: 1;
-  width: 34px;
-  height: 34px;
-}
-
-/* El tamaño se anima con `transform: scale` en un pseudo-elemento: el
-   compositor puede hacerlo sin recalcular el layout del anillo. El grosor se
-   compensa para que el borde se vea igual de fino en los dos tamaños. */
-.cursor-anillo::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  border: calc(1.5px / var(--escala)) solid rgba(255, 255, 255, 0.75);
-  transform: scale(var(--escala));
+.nav__enlace {
+  color: var(--color-muted);
+  text-decoration: underline;
+  text-decoration-color: transparent;
   transition:
-    transform 0.22s ease,
-    border-width 0.22s ease,
-    border-color 0.22s ease;
+    color var(--dur-short) var(--ease-out),
+    text-decoration-color var(--dur-short) var(--ease-out);
 }
 
-.cursor-anillo--grande {
-  --escala: 1.65;
+.nav__enlace:hover {
+  color: var(--color-ink);
+  text-decoration-color: var(--color-accent);
 }
 
-.cursor-anillo--grande::before {
-  border-color: var(--acento);
+.nav__medidor {
+  height: 2px;
+  background: var(--color-rule-2);
+}
+
+.nav__medidor > span {
+  display: block;
+  height: 100%;
+  background: var(--color-accent);
+  transform-origin: left;
 }
 
 /* ------------------------------------------------------------------ */
-/*  Giro fotográfico del héroe (renders de Cycles)                     */
+/*  Héroe (Banner) y giro fotográfico                                  */
 /* ------------------------------------------------------------------ */
+.heroe {
+  display: flex;
+  flex-direction: column;
+  min-height: 100svh;
+  padding-top: calc(var(--nav-alto) + var(--space-3xl));
+  background: var(--color-paper);
+  color: var(--color-ink);
+}
+
+/* La cabecera arriba y el giro llenando el resto de la primera pantalla. */
+.heroe > .container {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+}
+
+.heroe__cabecera {
+  align-items: end;
+  row-gap: var(--space-lg);
+}
+
+.heroe__titulo {
+  grid-column: 1 / span 7;
+  max-width: none;
+  font-size: clamp(3.5rem, 8vw, 7.5rem);
+  line-height: 0.95;
+}
+
+.heroe__texto {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+  grid-column: 8 / span 5;
+  padding-bottom: var(--space-xs);
+}
+
+@media (max-width: 60rem) {
+  .heroe__titulo,
+  .heroe__texto {
+    grid-column: 1 / -1;
+  }
+}
+
+.giro {
+  position: relative;
+  display: flex;
+  flex: 1 1 0;
+  align-items: center;
+  justify-content: center;
+  min-height: 360px;
+  margin: 0;
+  /* El fotograma (16:9) cabe entero en el hueco, a lo ancho o a lo alto. */
+  container-type: size;
+}
+
 .giro-foto {
-  position: absolute;
-  left: 50%;
-  top: 58%;
-  z-index: 0;
-  /* El ratón ocupa ~55 % del alto del fotograma: así cae entre el texto y
-     los botones del héroe. */
-  width: min(860px, 96vw, 112svh);
+  position: relative;
+  width: min(100cqw, 100cqh * 16 / 9);
   aspect-ratio: 16 / 9;
-  transform: translate(-50%, -50%);
-  /* El render trae su alfombrilla: se funde con el fondo de la página. */
-  -webkit-mask-image: radial-gradient(ellipse 46% 48% at 50% 52%, #000 52%, transparent 100%);
-  mask-image: radial-gradient(ellipse 46% 48% at 50% 52%, #000 52%, transparent 100%);
+  /* La pasada base trae alfa (la alfombrilla se desvanece junto al ratón);
+     la máscara solo recoge el resplandor de la luz en los bordes. */
+  -webkit-mask-image: radial-gradient(ellipse 48% 50% at 50% 50%, var(--color-ink) 70%, transparent 100%);
+  mask-image: radial-gradient(ellipse 48% 50% at 50% 50%, var(--color-ink) 70%, transparent 100%);
 }
 
 .giro-foto__lienzo {
@@ -569,7 +554,6 @@ html.cursor-propio * {
   pointer-events: auto;
   cursor: grab;
   touch-action: pan-y;
-  outline: none;
 }
 
 .giro-foto__lienzo:active {
@@ -577,89 +561,559 @@ html.cursor-propio * {
 }
 
 .giro-foto__lienzo:focus-visible {
-  box-shadow: inset 0 0 0 2px var(--acento);
+  outline: 2px solid var(--color-focus);
+  outline-offset: -2px;
+}
+
+.giro__pie {
+  position: absolute;
+  inset-inline: 0;
+  bottom: var(--space-lg);
+  text-align: center;
 }
 
 /* ------------------------------------------------------------------ */
-/*  Ventanas muy bajas (móvil apaisado / paneles divididos)            */
+/*  Tecnología: recorrido fijado junto al despiece                     */
+/* ------------------------------------------------------------------ */
+.tecnologia {
+  position: relative;
+  height: 380svh;
+}
+
+/* Capa fija con el control del despiece; los paneles pasan por debajo. */
+.tecnologia__fijo {
+  position: sticky;
+  top: 0;
+  height: 100svh;
+  margin-bottom: -100svh;
+  pointer-events: none;
+}
+
+.tecnologia__fijo .container {
+  display: flex;
+  align-items: flex-end;
+  height: 100%;
+  padding-bottom: var(--space-lg);
+}
+
+.tecnologia__control {
+  width: min(100%, 420px);
+}
+
+.tecnologia__panel {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--space-md);
+  min-height: 76svh;
+}
+
+.tecnologia__panel:first-child {
+  min-height: 90svh;
+}
+
+/* En escritorio el texto se centra por encima del control fijo de abajo. */
+@media (min-width: 60rem) {
+  .tecnologia__panel {
+    padding-bottom: calc(var(--space-4xl) + var(--space-2xl));
+  }
+}
+
+.tecnologia__pozo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+.tecnologia__dato {
+  font-size: var(--text-display-s);
+}
+
+@media (max-width: 60rem) {
+  /* En vertical el despiece ocupa el centro: el texto va en un pozo. */
+  .tecnologia__panel > * {
+    max-width: 34rem;
+  }
+
+  .tecnologia__pozo {
+    padding: var(--space-lg);
+    background: var(--color-paper-2);
+  }
+}
+
+/* Control del despiece */
+.control {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  padding: var(--space-lg);
+  background: var(--color-paper-2);
+  box-shadow: var(--shadow-card);
+}
+
+.control__fila {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.control__valor {
+  font-variant-numeric: tabular-nums;
+  color: var(--color-ink);
+}
+
+/* Deslizador: el medidor de Midnight (pista de 2 px, relleno del acento)
+   debajo de un input transparente que pone el control y el teclado. */
+.medidor {
+  position: relative;
+  display: grid;
+  align-items: center;
+  height: 24px;
+}
+
+.medidor__pista {
+  grid-area: 1 / 1;
+  height: 2px;
+  background: var(--color-rule-2);
+}
+
+.medidor__relleno {
+  display: block;
+  height: 100%;
+  background: var(--color-accent);
+  transform-origin: left;
+}
+
+input[type='range'].deslizador {
+  grid-area: 1 / 1;
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 24px;
+  margin: 0;
+  background: none;
+  cursor: pointer;
+}
+
+input[type='range'].deslizador:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+input[type='range'].deslizador::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: var(--space-md);
+  height: var(--space-md);
+  border: 0;
+  border-radius: 0;
+  background: var(--color-ink);
+}
+
+input[type='range'].deslizador::-moz-range-thumb {
+  width: var(--space-md);
+  height: var(--space-md);
+  border: 0;
+  border-radius: 0;
+  background: var(--color-ink);
+}
+
+/* ------------------------------------------------------------------ */
+/*  Hotspots (marcadores y tarjetas sobre el despiece)                 */
+/* ------------------------------------------------------------------ */
+.hotspot {
+  position: relative;
+}
+
+.hotspot__punto {
+  position: absolute;
+  left: 0;
+  top: 0;
+  translate: -50% -50%;
+  width: var(--marcador);
+  height: var(--marcador);
+  padding: 0;
+  border: var(--rule-hair) solid var(--color-ink);
+  border-radius: 0;
+  background: var(--color-paper-3);
+  cursor: pointer;
+  transition: background-color var(--dur-micro) var(--ease-out);
+}
+
+/* Área de toque de 44 px alrededor del cuadrado */
+.hotspot__punto::before {
+  content: '';
+  position: absolute;
+  inset: -15px;
+}
+
+.hotspot__punto:hover,
+.hotspot__punto[aria-expanded='true'] {
+  background: var(--color-accent);
+}
+
+.hotspot__punto:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 3px;
+}
+
+/* El centrado horizontal lo aplica Framer Motion con translateX(-50%). */
+.tarjeta-hotspot {
+  position: absolute;
+  /* La capa de marcadores ajusta esta variable para que la tarjeta no se
+     salga por los lados en móvil; en escritorio vale 0. */
+  left: var(--ajuste-x, 0px);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  width: min(var(--ancho-tarjeta), 78vw);
+  padding: var(--space-lg);
+  background: var(--color-paper-3);
+  box-shadow: var(--shadow-card);
+}
+
+.tarjeta-hotspot--arriba {
+  bottom: var(--space-lg);
+}
+
+.tarjeta-hotspot--abajo {
+  top: var(--space-lg);
+}
+
+.tarjeta-hotspot__cabeza {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.tarjeta-hotspot__cerrar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  background: none;
+  color: var(--color-muted);
+  cursor: pointer;
+  transition: color var(--dur-micro) var(--ease-out);
+}
+
+.tarjeta-hotspot__cerrar:hover {
+  color: var(--color-ink);
+}
+
+.tarjeta-hotspot__cerrar:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 0;
+}
+
+.tarjeta-hotspot__dato {
+  font-size: var(--text-2xl);
+}
+
+.tarjeta-hotspot__lista {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--text-sm);
+  color: var(--color-ink-2);
+}
+
+.tarjeta-hotspot__lista li {
+  padding-block: var(--space-2xs);
+  border-top: var(--rule-hair) solid var(--color-rule);
+}
+
+/* ------------------------------------------------------------------ */
+/*  Ficha técnica: filas sobre el fondo                                */
+/* ------------------------------------------------------------------ */
+.seccion {
+  position: relative;
+  padding-block: var(--section-gap);
+  background: var(--color-paper);
+}
+
+.seccion--banda {
+  padding-block: var(--section-gap-s);
+  background: var(--color-paper-2);
+  color: var(--color-ink);
+}
+
+.cabecera {
+  align-items: end;
+  row-gap: var(--space-md);
+  margin-bottom: var(--space-2xl);
+}
+
+.cabecera > h2 {
+  grid-column: 1 / span 5;
+}
+
+.cabecera > .lead {
+  grid-column: 7 / span 6;
+}
+
+@media (max-width: 60rem) {
+  .cabecera > h2,
+  .cabecera > .lead {
+    grid-column: 1 / -1;
+  }
+}
+
+.filas {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-bottom: var(--rule-hair) solid var(--color-rule);
+}
+
+.fila {
+  align-items: baseline;
+  row-gap: var(--space-xs);
+  padding-block: var(--space-xl);
+  border-top: var(--rule-hair) solid var(--color-rule);
+}
+
+.fila__fig {
+  grid-column: 1 / span 4;
+  font-size: var(--text-display-s);
+}
+
+.fila__titulo {
+  grid-column: 5 / span 3;
+}
+
+.fila__texto {
+  grid-column: 8 / span 5;
+  color: var(--color-ink-2);
+}
+
+@media (max-width: 60rem) {
+  .fila__fig,
+  .fila__titulo,
+  .fila__texto {
+    grid-column: 1 / -1;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/*  En el estudio: bento de renders                                    */
+/* ------------------------------------------------------------------ */
+.bento {
+  row-gap: var(--gap-columns);
+}
+
+.bento__foto {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  min-width: 0;
+  min-height: 0;
+  background: var(--color-paper-3);
+  outline: var(--rule-hair) solid color-mix(in oklab, var(--color-ink) 8%, transparent);
+  outline-offset: -1px;
+}
+
+.bento__foto img {
+  flex: 1 1 auto;
+  width: 100%;
+  min-height: 0;
+  object-fit: cover;
+}
+
+.bento__foto figcaption {
+  padding: var(--space-xs) var(--space-md);
+}
+
+/* La principal ocupa ocho columnas y las tres filas (el ratón llena el
+   recorte casi cuadrado); a su lado, las otras tres en 16:9 sin recortar. */
+.bento__foto--1 {
+  grid-column: 1 / span 8;
+  grid-row: 1 / span 3;
+}
+.bento__foto--2,
+.bento__foto--3,
+.bento__foto--4 {
+  grid-column: 9 / span 4;
+}
+.bento__foto--2 img,
+.bento__foto--3 img,
+.bento__foto--4 img {
+  aspect-ratio: 16 / 9;
+  flex: 0 0 auto;
+}
+
+@media (max-width: 60rem) {
+  .bento__foto--1 {
+    grid-row: auto;
+  }
+
+  .bento__foto--1,
+  .bento__foto--2,
+  .bento__foto--3,
+  .bento__foto--4 {
+    grid-column: 1 / -1;
+    aspect-ratio: 16 / 9;
+  }
+
+  .bento__foto + .bento__foto {
+    margin-top: var(--gap-columns);
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/*  Iluminación: selector sobre el ratón 3D                            */
+/* ------------------------------------------------------------------ */
+.color {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  height: 150svh;
+}
+
+/* Fijado por abajo y al final de la sección: se comporta igual que uno
+   fijado arriba al principio, sin competir con el de Tecnología. */
+.color__fijo {
+  position: sticky;
+  bottom: 0;
+  width: 100%;
+  height: 100svh;
+}
+
+.color__fijo > .container {
+  display: grid;
+  align-content: center;
+  height: 100%;
+}
+
+.color__texto {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+/* ------------------------------------------------------------------ */
+/*  Oferta                                                             */
+/* ------------------------------------------------------------------ */
+.oferta {
+  display: flex;
+  min-height: 100svh;
+  align-items: center;
+  padding-block: var(--section-gap-s);
+}
+
+.oferta__caja {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+.oferta__precio {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-md);
+}
+
+.oferta__cifra {
+  font-size: clamp(4rem, 7vw, 7rem);
+}
+
+.oferta__antes {
+  font-size: var(--text-lg);
+  color: var(--color-muted);
+  text-decoration: line-through;
+}
+
+.oferta__lista {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-bottom: var(--rule-hair) solid var(--color-rule);
+}
+
+.oferta__lista li {
+  padding-block: var(--space-sm);
+  border-top: var(--rule-hair) solid var(--color-rule);
+  color: var(--color-ink-2);
+}
+
+/* En vertical el ratón ocupa el centro: la oferta y el selector de luz
+   van en un pozo, como los paneles de Tecnología. */
+@media (max-width: 60rem) {
+  .oferta__caja,
+  .color__texto {
+    padding: var(--space-lg);
+    background: var(--color-paper-2);
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/*  Pie: bloque de colofón                                             */
+/* ------------------------------------------------------------------ */
+.pie {
+  padding-block: var(--space-3xl);
+  border-top: var(--rule-hair) solid var(--color-rule);
+  background: var(--color-paper);
+}
+
+.pie__bloque {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  max-width: 60ch;
+}
+
+.pie__palabra {
+  font-weight: var(--display-weight);
+  font-stretch: var(--display-stretch);
+  font-size: var(--text-2xl);
+  color: var(--color-ink);
+}
+
+.pie a {
+  color: var(--color-ink);
+  text-decoration-color: var(--color-rule-2);
+  transition: text-decoration-color var(--dur-short) var(--ease-out);
+}
+
+.pie a:hover {
+  text-decoration-color: var(--color-accent);
+}
+
+/* ------------------------------------------------------------------ */
+/*  Ventanas muy bajas (móvil apaisado, paneles divididos)             */
 /* ------------------------------------------------------------------ */
 @media (max-height: 620px) {
-  #inicio.hero {
-    padding-top: 5rem;
-    padding-bottom: 1.25rem;
+  .heroe {
+    padding-top: calc(var(--nav-alto) + var(--space-xl));
   }
 
-  #inicio .hero__titulo {
-    margin-top: 1rem;
-    font-size: clamp(2.4rem, 12vh, 4rem);
+  .heroe__titulo {
+    font-size: clamp(2.5rem, 12svh, 4rem);
   }
 
-  .hero__descripcion,
-  .hero__chips,
-  .hero__pista {
+  .color__texto .lead,
+  .tecnologia__panel .lead {
     display: none;
-  }
-
-  .hero__acciones {
-    gap: 0.75rem;
-  }
-
-  #tecnologia .tech__cabecera {
-    top: 4.5rem;
-  }
-
-  #tecnologia .tech__descripcion {
-    display: none;
-  }
-
-  #tecnologia .tech__cabecera h2 {
-    font-size: clamp(1.35rem, 5.5vh, 1.8rem);
-  }
-
-  #color .color__sticky {
-    padding-top: 4.5rem;
-    padding-bottom: 1rem;
-  }
-
-  #color .color__descripcion {
-    display: none;
-  }
-
-  #color .color__cabecera h2 {
-    font-size: clamp(1.6rem, 6vh, 2.2rem);
-  }
-
-  #color .color__panel {
-    gap: 0.25rem;
-    padding: 0.5rem;
   }
 }
 
 /* ------------------------------------------------------------------ */
-/*  Accesibilidad: movimiento reducido                                 */
+/*  Movimiento reducido                                                */
 /* ------------------------------------------------------------------ */
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
   }
 
-  .marquesina,
-  .aviso-carga__pulso {
-    animation: none;
-  }
-
-  .hotspot__punto::after {
-    display: none;
-  }
-
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.001ms !important;
-    /* Sin esto, los pulsos `infinite` seguían reprogramándose cada milisegundo. */
-    animation-iteration-count: 1 !important;
-    animation-delay: 0ms !important;
-    transition-duration: 0.001ms !important;
-    transition-delay: 0ms !important;
+  .despiece-foto,
+  .medidor__relleno,
+  .boton,
+  .segmento,
+  .nav__enlace,
+  .hotspot__punto,
+  .escena-fija {
+    transition: none;
   }
 }

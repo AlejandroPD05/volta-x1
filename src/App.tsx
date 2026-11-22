@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
 import { MotionConfig } from 'framer-motion'
-import { Cursor } from './componentes/Cursor'
 import { DespieceFoto } from './componentes/DespieceFoto'
 import { Hero } from './componentes/Hero'
 import { Nav } from './componentes/Nav'
@@ -13,12 +12,13 @@ import { SeccionTecnologia } from './componentes/SeccionTecnologia'
 import { Escena } from './escena/Escena'
 import { MarcadoresHotspot } from './escena/MarcadoresHotspot'
 import { ACENTOS, useUsoTienda } from './estado/usoTienda'
+import { arrancarSimulador } from './escena/Simulador'
 
 /** Aviso mínimo cuando el navegador no puede crear un contexto WebGL. */
 function SinWebgl() {
   return (
-    <div className="flex h-full items-center justify-center px-8">
-      <p className="cristal texto-apagado max-w-sm rounded-2xl p-6 text-center text-sm">
+    <div className="sin-webgl">
+      <p className="sin-webgl__aviso">
         Tu navegador no puede dibujar la escena 3D (WebGL desactivado). Actívalo para
         ver el VOLTA X1 despiezado en directo.
       </p>
@@ -38,6 +38,9 @@ export function App() {
       return false
     }
   })
+
+  // Suavizado del despiece: un único bucle, fuera del lienzo 3D.
+  useEffect(() => arrancarSimulador(), [])
 
   // El acento se propaga a toda la interfaz vía variables CSS.
   useEffect(() => {
@@ -64,7 +67,12 @@ export function App() {
     const pie = document.querySelector('footer')
     const tech = document.getElementById('tecnologia')
     const medir = () => {
-      if (pie) setActiva(pie.getBoundingClientRect().top >= window.innerHeight * 0.4)
+      if (pie) {
+        const arriba = pie.getBoundingClientRect().top
+        setActiva(arriba >= window.innerHeight * 0.4)
+        // El escenario fijo se desvanece antes de que el pie lo corte.
+        document.documentElement.classList.toggle('con-pie', arriba < window.innerHeight)
+      }
       if (!tech) return
       const r = tech.getBoundingClientRect()
       const enTech = r.top < window.innerHeight && r.bottom > 0
@@ -91,9 +99,8 @@ export function App() {
   return (
     <MotionConfig reducedMotion="user">
       <>
-        {/* Capas fijas: fondo → viñeta → escena 3D → ruido */}
+        {/* Capas fijas: fondo, escenario 3D, despiece fotográfico, marcadores */}
         <div className="fondo-fijo" aria-hidden="true" />
-        <div className="vineta" aria-hidden="true" />
         <div className="escena-fija">{webgl ? <Escena activa={activa} /> : <SinWebgl />}</div>
         {/* El despiece se ve en fotos de Cycles; el 3D queda para el resto. */}
         <DespieceFoto enTecnologia={enTecnologia} />
@@ -102,8 +109,6 @@ export function App() {
         <div className={`capa-hotspots${enTecnologia ? '' : ' capa-hotspots--oculta'}`}>
           <MarcadoresHotspot activa={activa && webgl && enTecnologia} />
         </div>
-        <Cursor />
-        <div className="ruido" aria-hidden="true" />
 
         <Nav />
         <ScrollDirector />

@@ -1,31 +1,57 @@
+import { HOTSPOTS } from '../datos/especificaciones'
 import { ControlExplosion } from './ControlExplosion'
 
+/** Las capas que cuentan el despiece, en el orden en que se separan. */
+const PASOS = ['carcasa', 'pcb', 'bateria'].map((id) => HOTSPOTS.find((h) => h.id === id)!)
+
 /**
- * Sección larga (380 vh) que acompaña a la descomposición: el ratón se abre
- * en los primeros 240 vh y se queda abierto (y girable) una pantalla más.
+ * Sección larga (380 svh) que acompaña a la descomposición: el ratón se abre
+ * en los primeros 240 svh y se queda abierto (y girable) una pantalla más.
  *
- * Composición asimétrica: el texto se queda a la izquierda y los controles
- * abajo a la derecha, dejando libre la banda central donde vive el ratón
- * del lienzo fijo con sus hotspots. El scroll de esta sección mapea 0→1 en
- * `ScrollDirector`.
+ * Recorrido fijado: el despiece fotográfico se queda en la mitad derecha
+ * mientras los paneles de la izquierda pasan a su lado, cada uno con la capa
+ * que se está separando. El control del despiece se queda abajo, a mano.
  */
 export function SeccionTecnologia() {
   return (
-    <section id="tecnologia" className="relative h-[380vh]">
-      <div className="pointer-events-none sticky top-0 h-[100svh]">
-        <header className="tech__cabecera absolute left-5 right-5 top-24 max-w-sm text-left sm:left-12">
-          <p className="etiqueta-seccion">02 · Ingeniería</p>
-          <h2 className="titulo-grande mt-3 text-[clamp(1.5rem,3vw,2.3rem)] leading-tight text-white">
-            Diseccionado hasta el <span className="texto-acento">último átomo</span>
-          </h2>
-          <p className="tech__descripcion texto-apagado mt-3 text-sm">
-            Desliza para separar las seis capas. Cada punto es una pieza real: pásale
-            el ratón por encima para leer sus números.
-          </p>
-        </header>
+    <section id="tecnologia" className="tecnologia">
+      <div className="tecnologia__fijo">
+        <div className="container">
+          <div className="tecnologia__control interactivo">
+            <ControlExplosion />
+          </div>
+        </div>
+      </div>
 
-        <div className="absolute bottom-6 left-5 right-5 sm:left-auto sm:right-8 sm:w-[420px]">
-          <ControlExplosion />
+      <div className="container rejilla">
+        <div className="lado-texto">
+          <div className="tecnologia__panel">
+            <div className="tecnologia__pozo">
+              <h2>Las seis capas</h2>
+              <p className="lead">
+                Desliza para separar las seis capas. Cada punto es una pieza real: pásale el
+                ratón por encima para leer sus números.
+              </p>
+            </div>
+          </div>
+
+          {PASOS.map((paso) => (
+            <div key={paso.id} className="tecnologia__panel">
+              <div className="tecnologia__pozo">
+                <h3>{paso.titulo}</h3>
+                <p className="fig tecnologia__dato">{paso.dato}</p>
+                <p className="lead">{paso.resumen}</p>
+              </div>
+            </div>
+          ))}
+
+          <div className="tecnologia__panel">
+            <div className="tecnologia__pozo">
+              <p className="lead">
+                Abierto del todo, arrástralo o usa las flechas para girarlo 360°.
+              </p>
+            </div>
+          </div>
         </div>
       </div>
     </section>

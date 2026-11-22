@@ -25,14 +25,16 @@ de cada pieza.
   Batería → Base`) controlado por scroll, por un **slider manual** o por los
   botones *Explosionar / Montar*. El ensamblaje se invierte al bajar a la
   siguiente sección.
-- **Hotspots 3D**: puntos anclados a la posición de cada pieza en el despiece
-  (giran y flotan con el ratón) que abren tarjetas glassmorphism con las cifras
-  del componente.
-- **Selección de color** con tres acentos neón (cyan, púrpura, lima) que tiñen
-  LEDs, interfaz y hasta el polvo de partículas.
-- **Micro-interacciones** por todas partes: cursor propio con inercia,
-  contadores animados, reveals con Framer Motion, panel de control con lectura
-  en vivo del porcentaje de despiece.
+- **Hotspots**: marcadores cuadrados anclados a cada pieza del despiece que
+  abren tarjetas con las cifras del componente.
+- **Selección de color** con tres acentos (Cyan Nova, Púrpura Plasma, Lima
+  Reactor) que tiñen los LED de las fotos y del 3D y el acento de la página.
+- **Diseño**: rediseño con Hallmark sobre el tema Midnight (fondo azul noche,
+  Mona Sans ancha a 300, superficies cuadradas por escalones de luz, una sola
+  señal de color). Díptico: el texto a la izquierda y el escenario fijo (fotos
+  de Cycles y ratón 3D) en la mitad derecha. Tokens en
+  `src/estilos/tokens.css`, base en `base.css` y la página en `index.css`,
+  cuyo sello Hallmark documenta las decisiones y lo que cambió de texto.
 - **Rendimiento y accesibilidad**: un único canvas de pantalla completa bajo la
   capa DOM, valores continuos fuera de React (sin re-renders por frame), `dpr`
   limitado, sin shadow maps, `prefers-reduced-motion` respetado (desactiva
@@ -46,11 +48,11 @@ de cada pieza.
 | Build | Vite 8 + TypeScript 6 |
 | UI | React 19 + Tailwind CSS v4 |
 | 3D | three.js + @react-three/fiber + @react-three/drei |
-| Post-proceso | @react-three/postprocessing (bloom); viñeta por CSS |
+| Post-proceso | @react-three/postprocessing (bloom) |
 | Animación | GSAP (intro) + Framer Motion (DOM) + useFrame (escena) |
 | Estado | Zustand (objetivos/UI) + objeto mutable `sim` (por-frame) |
 | Tests | Vitest |
-| Tipografías | Orbitron, Space Grotesk y JetBrains Mono (auto-hospedadas) |
+| Tipografía | Mona Sans variable (anchura y peso), auto-hospedada |
 
 ## Cómo funciona el despiece
 
@@ -76,7 +78,7 @@ de cada pieza.
 
 ```
 src/
-  componentes/   # capa DOM: hero, secciones, nav, cursor, controles
+  componentes/   # capa DOM: hero, secciones, nav, controles
   escena/        # el ratón 3D: partes/, cámara, luces, efectos, hotspots
   datos/         # especificaciones y contenido de hotspots
   estado/        # zustand (objetivos) + sim (valores por-frame)

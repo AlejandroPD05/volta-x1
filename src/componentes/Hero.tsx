@@ -2,22 +2,18 @@ import { motion } from 'framer-motion'
 import { useUsoTienda } from '../estado/usoTienda'
 import { GiroFoto } from './GiroFoto'
 
-const CHIPS = ['45 g ultraligero', '8 000 Hz sin cables', '30 000 DPI', '90 h de batería']
-
-const contenedor = {
-  hidden: {},
-  visible: { transition: { staggerChildren: 0.14, delayChildren: 0.7 } },
-}
-
-const item = {
-  hidden: { opacity: 0, y: 26 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.8, ease: [0.22, 1, 0.36, 1] as const } },
+/** Un único asentamiento: el texto pasa de 0,6 a 1 de opacidad, una vez. */
+const asentar = {
+  initial: { opacity: 0.6 },
+  animate: { opacity: 1 },
+  transition: { duration: 0.42, ease: [0.16, 1, 0.3, 1] as const },
 }
 
 /**
- * Héroe: en el centro, el ratón fotografiado en Cycles girando 360° (se
- * arrastra). El 3D en vivo se oculta mientras este giro está a la vista y
- * toma el relevo al bajar a Tecnología, donde se descompone.
+ * Héroe en banda: el nombre, una frase y las dos acciones; justo debajo, el
+ * ratón renderizado en Cycles girando 360° (se arrastra), grande y de cerca.
+ * El 3D en vivo se oculta mientras este giro está a la vista y toma el relevo
+ * al bajar a Tecnología, donde se descompone.
  */
 export function Hero() {
   const reducido = useUsoTienda((s) => s.reducido)
@@ -27,78 +23,43 @@ export function Hero() {
   }
 
   return (
-    <section
-      id="inicio"
-      className="hero relative flex h-[100svh] flex-col items-center justify-between overflow-hidden pb-10 pt-24 sm:pb-14"
-    >
-      <motion.div
-        initial="hidden"
-        animate="visible"
-        variants={contenedor}
-        className="hero__intro relative z-10 flex flex-col items-center px-6 text-center"
-      >
-        <motion.p
-          variants={item}
-          className="cristal rounded-full px-4 py-1.5 font-mono text-[10px] uppercase tracking-[0.3em] texto-acento"
-        >
-          Nuevo · Edición Fundador
-        </motion.p>
+    <section id="inicio" className="heroe">
+      <div className="container">
+        <div className="rejilla heroe__cabecera">
+          <motion.h1 className="heroe__titulo" {...asentar}>
+            VOLTA X1
+          </motion.h1>
+          <motion.div className="heroe__texto" {...asentar}>
+            <p className="lead">
+              El ratón inalámbrico de 45 gramos que se desmonta ante tus ojos.
+            </p>
+            <div className="acciones">
+              <button
+                type="button"
+                onClick={() => irA('comprar')}
+                className="boton boton--primario"
+              >
+                Comprar por 149&nbsp;€
+              </button>
+              <button
+                type="button"
+                onClick={() => irA('tecnologia')}
+                className="boton boton--secundario"
+              >
+                Ver la tecnología interna
+              </button>
+            </div>
+          </motion.div>
+        </div>
 
-        <motion.h1
-          variants={item}
-          className="hero__titulo titulo-grande mt-5 text-[clamp(3.2rem,11vw,7.5rem)] leading-none text-white"
-        >
-          VOLTA <span className="texto-acento texto-glow">X1</span>
-        </motion.h1>
-
-        <motion.p
-          variants={item}
-          className="hero__descripcion texto-apagado mt-4 max-w-md text-sm sm:text-base"
-        >
-          El ratón inalámbrico de 45 gramos que se desmonta delante de tus ojos.
-          Arrástralo, gíralo y mira lo que llevamos dentro.
-        </motion.p>
-      </motion.div>
-
-      {/* Centro: giro fotográfico de Cycles (el 3D en vivo entra en Tecnología) */}
-      <GiroFoto />
-
-      <motion.div
-        initial="hidden"
-        animate="visible"
-        variants={contenedor}
-        className="hero__acciones relative z-10 flex flex-col items-center gap-5 px-6"
-      >
-        <motion.ul variants={item} className="hero__chips flex flex-wrap justify-center gap-2">
-          {CHIPS.map((chip) => (
-            <li
-              key={chip}
-              className="cristal rounded-full px-3.5 py-1.5 font-mono text-[11px] text-slate-300"
-            >
-              {chip}
-            </li>
-          ))}
-        </motion.ul>
-
-        <motion.div
-          variants={item}
-          className="hero__botones flex flex-wrap items-center justify-center gap-3"
-        >
-          <button type="button" onClick={() => irA('tecnologia')} className="boton-neon">
-            Ver la tecnología interna
-          </button>
-          <button type="button" onClick={() => irA('comprar')} className="boton-fantasma">
-            Comprar — 149 €
-          </button>
-        </motion.div>
-
-        <motion.p
-          variants={item}
-          className="hero__pista texto-apagado font-mono text-[10px] uppercase tracking-[0.25em]"
-        >
-          Arrastra para girar · desliza para descomponer
-        </motion.p>
-      </motion.div>
+        {/* El ratón de cerca: giro fotográfico de Cycles */}
+        <figure className="giro">
+          <GiroFoto />
+          <figcaption className="giro__pie etiqueta">
+            Arrástralo para girarlo; desliza hacia abajo para descomponerlo.
+          </figcaption>
+        </figure>
+      </div>
     </section>
   )
 }

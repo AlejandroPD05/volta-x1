@@ -5,6 +5,7 @@ import { marcadores, ranuraMarcador, sim } from '../estado/sim'
 import { hexAcento, useUsoTienda } from '../estado/usoTienda'
 import { onda } from '../escena/sobrecarga'
 import { esponjar } from '../utiles/mates'
+import { centroEscenario } from '../utiles/escenario'
 import {
   CompositorFoto,
   cargarFotograma,
@@ -132,7 +133,7 @@ export function DespieceFoto({ enTecnologia }: Props) {
       const vh = window.innerHeight
       caja.alto = Math.min(vh * 0.8, vw / 0.62 / ASPECTO)
       caja.ancho = caja.alto * ASPECTO
-      caja.x = (vw - caja.ancho) / 2
+      caja.x = centroEscenario(vw) - caja.ancho / 2
       caja.y = (vh - caja.alto) / 2 + vh * 0.035
       canvas.style.width = `${caja.ancho}px`
       canvas.style.height = `${caja.alto}px`

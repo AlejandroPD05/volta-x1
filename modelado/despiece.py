@@ -208,8 +208,8 @@ def alfombrilla_desvanecida():
     largo.operation = 'LENGTH'
     rango = a.nodes.new('ShaderNodeMapRange')
     rango.interpolation_type = 'SMOOTHERSTEP'
-    rango.inputs['From Min'].default_value = 0.12
-    rango.inputs['From Max'].default_value = 0.42
+    rango.inputs['From Min'].default_value = 0.07
+    rango.inputs['From Max'].default_value = 0.24
     hueco = a.nodes.new('ShaderNodeHoldout')
     mezcla = a.nodes.new('ShaderNodeMixShader')
     a.links.new(geo.outputs['Position'], xy.inputs[0])

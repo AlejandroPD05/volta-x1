@@ -1,21 +1,18 @@
-/** Pie de página: la letra pequeña honesta. */
+/** Pie de página: bloque de colofón, la letra pequeña honesta. */
 export function Pie() {
   return (
-    <footer className="relative border-t border-white/5 bg-[#05060a] py-10">
-      <div className="texto-apagado mx-auto flex w-[min(1120px,90vw)] flex-col items-center justify-between gap-4 text-xs sm:flex-row">
-        <p>
-          © 2026 VOLTA — marca ficticia creada para la demo de portfolio de{' '}
-          <a
-            href="https://alejandropd05.github.io/portfolio/"
-            target="_blank"
-            rel="noreferrer"
-            className="texto-acento hover:underline"
-          >
-            Alejandro Prieto Díez
-          </a>
-          .
-        </p>
-        <p className="font-mono">React Three Fiber · GSAP · Tailwind</p>
+    <footer className="pie">
+      <div className="container">
+        <div className="pie__bloque">
+          <p className="pie__palabra">VOLTA</p>
+          <p className="apagado">
+            © 2026 VOLTA, marca ficticia creada para la demo de portfolio de{' '}
+            <a href="https://alejandropd05.github.io/portfolio/" target="_blank" rel="noreferrer">
+              Alejandro Prieto Díez
+            </a>
+            . Hecho con React Three Fiber, GSAP y Tailwind.
+          </p>
+        </div>
       </div>
     </footer>
   )

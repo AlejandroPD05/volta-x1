@@ -1,6 +1,6 @@
 import { Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
-import { AgXToneMapping } from 'three'
+import { AgXToneMapping, PerspectiveCamera } from 'three'
 import { ContactShadows } from '@react-three/drei'
 import gsap from 'gsap'
 import { sim } from '../estado/sim'
@@ -10,8 +10,30 @@ import { Efectos } from './Efectos'
 import { Iluminacion } from './Iluminacion'
 import { Onda } from './Onda'
 import { Raton } from './Raton'
-import { Simulador } from './Simulador'
 import { precompilarShaders } from './precompilar'
+import { centroEscenario } from '../utiles/escenario'
+
+/**
+ * Lleva el render a la mitad derecha en escritorio (el texto vive a la
+ * izquierda) desplazando la vista de la cámara, sin mover el ratón ni la
+ * cámara: la órbita, la luz y los hotspots siguen igual.
+ */
+function DesplazarEscenario() {
+  const camara = useThree((s) => s.camera)
+  const tamano = useThree((s) => s.size)
+  useEffect(() => {
+    if (!(camara instanceof PerspectiveCamera)) return
+    const { width, height } = tamano
+    const dx = centroEscenario(width) - width / 2
+    camara.setViewOffset(width, height, -dx, 0, width, height)
+    camara.updateProjectionMatrix()
+    return () => {
+      camara.clearViewOffset()
+      camara.updateProjectionMatrix()
+    }
+  }, [camara, tamano])
+  return null
+}
 
 /**
  * El lienzo 3D: un único `<Canvas>` fijo que atraviesa toda la página.
@@ -196,7 +218,6 @@ export function Escena({ activa }: { activa: boolean }) {
         {/* El ratón llega como GLB: todo espera a la malla para que la
             precompilación encuentre la escena completa. */}
         <Suspense fallback={null}>
-          <Simulador />
           <Iluminacion />
           <Raton />
           <Onda />
@@ -205,6 +226,7 @@ export function Escena({ activa }: { activa: boolean }) {
           <SombraContacto />
 
           <Camara />
+          <DesplazarEscenario />
           {!ligero && <Efectos />}
 
           {/* Último en montarse: cuando corre, la escena ya está completa. */}
@@ -216,7 +238,6 @@ export function Escena({ activa }: { activa: boolean }) {
       {/* Aviso mientras la GPU compila los shaders (la página sigue viva) */}
       {!lista && (
         <p className="aviso-carga" role="status">
-          <span className="aviso-carga__pulso" aria-hidden="true" />
           Preparando la escena 3D
         </p>
       )}

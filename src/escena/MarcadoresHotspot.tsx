@@ -53,7 +53,7 @@ function PuntoHotspot({ dato, indice, registrar }: PropsPunto) {
         type="button"
         className="hotspot__punto"
         aria-expanded={activo}
-        aria-label={`${dato.titulo}: ${dato.dato}`}
+        aria-label={`${indice}. ${dato.titulo}: ${dato.dato}`}
         onMouseEnter={conHover ? () => abrir(dato.id) : undefined}
         onClick={() => {
           if (!conHover) alternar(dato.id)
@@ -64,36 +64,30 @@ function PuntoHotspot({ dato, indice, registrar }: PropsPunto) {
         {activo && (
           <motion.div
             key="tarjeta"
-            initial={{ opacity: 0, scale: 0.95, x: '-50%', y: dato.direccion === 'arriba' ? 12 : -12 }}
-            animate={{ opacity: 1, scale: 1, x: '-50%', y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, x: '-50%', y: dato.direccion === 'arriba' ? 12 : -12 }}
-            transition={{ type: 'spring', stiffness: 340, damping: 28 }}
+            initial={{ opacity: 0, x: '-50%', y: dato.direccion === 'arriba' ? 8 : -8 }}
+            animate={{ opacity: 1, x: '-50%', y: 0 }}
+            exit={{ opacity: 0, x: '-50%', y: dato.direccion === 'arriba' ? 8 : -8 }}
+            transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
             className={`tarjeta-hotspot interactivo tarjeta-hotspot--${dato.direccion}`}
           >
-            <div className="flex items-center justify-between gap-3">
-              <p className="font-mono text-[10px] uppercase tracking-[0.28em] texto-acento">
-                {String(indice).padStart(2, '0')}
-              </p>
+            <div className="tarjeta-hotspot__cabeza">
+              <h3>{dato.titulo}</h3>
               <button
                 type="button"
                 onClick={cerrar}
                 aria-label="Cerrar tarjeta"
-                className="texto-apagado text-xs transition-colors hover:text-white"
+                className="tarjeta-hotspot__cerrar"
               >
                 ✕
               </button>
             </div>
 
-            <h3 className="titulo-grande mt-1 text-sm text-white">{dato.titulo}</h3>
-            <p className="titulo-grande texto-acento texto-glow mt-1 text-2xl">{dato.dato}</p>
-            <p className="texto-apagado mt-2 text-xs leading-relaxed">{dato.resumen}</p>
+            <p className="fig tarjeta-hotspot__dato">{dato.dato}</p>
+            <p className="apagado">{dato.resumen}</p>
 
-            <ul className="mt-3 space-y-1">
+            <ul className="tarjeta-hotspot__lista">
               {dato.detalles.map((detalle) => (
-                <li key={detalle} className="flex gap-2 text-[11px] text-slate-300">
-                  <span className="texto-acento">▸</span>
-                  {detalle}
-                </li>
+                <li key={detalle}>{detalle}</li>
               ))}
             </ul>
           </motion.div>

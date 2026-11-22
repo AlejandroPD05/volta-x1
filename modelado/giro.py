@@ -7,6 +7,7 @@ Se ejecuta sobre la escena de producto (`raton.blend` ya preparado por
 
 Dos pasadas por fotograma, que la web suma en un <canvas>:
   base/  el ratón con la luz de estudio y la tira APAGADA (difusor lechoso),
+       con canal alfa: la alfombrilla se desvanece a pocos centímetros,
   luz/   solo la luz de la tira en BLANCO (estudio y HDRI apagados): la tira,
          el logo, su derrame sobre el casco y la alfombrilla y el resplandor.
 La web tiñe `luz` con el acento y la suma a `base` (modo 'lighter'), así que
@@ -113,6 +114,38 @@ def emisiones(blanco, fuerza_tira, fuerza_luz, fuerza_logo):
     em.inputs['Strength'].default_value = fuerza_luz
 
 
+def alfombrilla_desvanecida(desde=0.07, hasta=0.2):
+    """La alfombrilla se funde en transparencia a pocos centímetros del ratón
+    (la pasada base sale con alfa): en la web solo quedan el ratón y su
+    sombra de contacto sobre el fondo de la página, sin un charco de luz."""
+    ob = bpy.data.objects['Alfombrilla']
+    a = ob.data.materials[0].node_tree
+    if a.nodes.get('Hueco'):
+        return
+    salida = next(n for n in a.nodes if n.type == 'OUTPUT_MATERIAL')
+    bsdf = salida.inputs['Surface'].links[0].from_node
+    geo = a.nodes.new('ShaderNodeNewGeometry')
+    xy = a.nodes.new('ShaderNodeVectorMath')
+    xy.operation = 'MULTIPLY'
+    xy.inputs[1].default_value = (1, 1, 0)
+    largo = a.nodes.new('ShaderNodeVectorMath')
+    largo.operation = 'LENGTH'
+    rango = a.nodes.new('ShaderNodeMapRange')
+    rango.interpolation_type = 'SMOOTHERSTEP'
+    rango.inputs['From Min'].default_value = desde
+    rango.inputs['From Max'].default_value = hasta
+    hueco = a.nodes.new('ShaderNodeHoldout')
+    hueco.name = 'Hueco'
+    mezcla = a.nodes.new('ShaderNodeMixShader')
+    a.links.new(geo.outputs['Position'], xy.inputs[0])
+    a.links.new(xy.outputs['Vector'], largo.inputs[0])
+    a.links.new(largo.outputs['Value'], rango.inputs['Value'])
+    a.links.new(rango.outputs['Result'], mezcla.inputs['Fac'])
+    a.links.new(bsdf.outputs[0], mezcla.inputs[1])
+    a.links.new(hueco.outputs[0], mezcla.inputs[2])
+    a.links.new(mezcla.outputs[0], salida.inputs['Surface'])
+
+
 def pase(nombre):
     hdri = fondo_hdri()
     glare = escena.compositing_node_group.nodes.get('Glare') if escena.compositing_node_group else None
@@ -134,6 +167,10 @@ def pase(nombre):
         emisiones(True, 1.5, 22.0, 1.1)
         if glare:
             glare.mute = False
+    # Base con alfa (se dibuja sobre el fondo de la página); la luz, opaca
+    # sobre negro, porque la web la suma.
+    escena.render.film_transparent = nombre == 'base'
+    escena.render.image_settings.color_mode = 'RGBA' if nombre == 'base' else 'RGB'
     escena.render.filepath = os.path.join(SALIDA, nombre, '')
     bpy.ops.render.render(animation=True)
     # Restaura el fondo oscuro para la siguiente pasada.
@@ -145,6 +182,7 @@ def pase(nombre):
 def main():
     giro()
     camara()
+    alfombrilla_desvanecida()
     for p in PASES:
         pase(p)
         print('PASE', p, 'listo')
